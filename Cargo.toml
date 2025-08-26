@@ -21,6 +21,10 @@ unicode-normalization = "0.1"
 unicode-categories = "0.1"
 icu = "1.4"  # Unicode Collation Algorithm, text segmentation
 
+# Vertical programming infrastructure
+unicode-bidi = "0.3"       # Bidirectional text algorithm
+encoding_rs = "0.8"        # Character encoding handling
+
 # Alternative/complementary parsing
 lalrpop = "0.20"  # LR parser generator alternative to nom
 chumsky = "0.9"   # Parser combinator with better error recovery
