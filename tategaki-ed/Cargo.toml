@@ -1,0 +1,54 @@
+[package]
+name = "tategaki-ed"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "Vertical text editor for Japanese programming languages with dual GPUI/Ratatui interfaces"
+license = "MIT OR Apache-2.0"
+keywords = ["editor", "vertical-text", "japanese", "tategaki", "programming"]
+categories = ["text-editors", "gui", "internationalization"]
+
+[[bin]]
+name = "tategaki-ed-gui"
+path = "src/bin/gui.rs"
+required-features = ["gpui"]
+
+[[bin]]
+name = "tategaki-ed-tui"
+path = "src/bin/tui.rs"
+required-features = ["ratatui"]
+
+[features]
+default = ["gpui", "ratatui"]
+gpui = ["dep:gpui", "dep:cosmic-text"]
+ratatui = ["dep:ratatui", "dep:crossterm"]
+
+[dependencies]
+# Core text processing
+unicode-segmentation = "1.10"
+unicode-bidi = "0.3"
+unicode-normalization = "0.1"
+serde = { version = "1.0", features = ["derive"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tokio = { version = "1.0", features = ["full"] }
+
+# GPUI interface (optional)
+gpui = { git = "https://github.com/zed-industries/zed", optional = true }
+cosmic-text = { version = "0.10", optional = true }
+
+# Ratatui interface (optional)
+ratatui = { version = "0.26", optional = true }
+crossterm = { version = "0.27", optional = true }
+
+# Integration with main compiler
+kakekotoba = { path = ".." }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.0"
+proptest = "1.0"
+
+[package.metadata.docs.rs]
+all-features = true
