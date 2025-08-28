@@ -1,6 +1,9 @@
 use crate::ast::*;
 use crate::error::{Error, Result, Span};
 use crate::lexer::{Token, TokenKind};
+use crate::vertical::{SpatialToken, Position2D, Span2D, WritingDirection};
+use crate::layout::CodeLayout;
+use crate::spatial_ast::{SpatialProgram, SpatialASTBuilder, SourceInfo};
 use nom::{
     branch::alt,
     combinator::{map, opt},
@@ -12,16 +15,77 @@ use nom::{
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+    // Spatial parsing extensions
+    spatial_tokens: Option<Vec<SpatialToken>>,
+    source_text: Option<String>,
+    writing_direction: WritingDirection,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Self { tokens, current: 0 }
+        Self { 
+            tokens, 
+            current: 0,
+            spatial_tokens: None,
+            source_text: None,
+            writing_direction: WritingDirection::VerticalTbRl,
+        }
+    }
+
+    /// Create a parser with spatial token support
+    pub fn with_spatial(
+        tokens: Vec<Token>, 
+        spatial_tokens: Vec<SpatialToken>, 
+        source_text: String,
+        writing_direction: WritingDirection,
+    ) -> Self {
+        Self {
+            tokens,
+            current: 0,
+            spatial_tokens: Some(spatial_tokens),
+            source_text: Some(source_text),
+            writing_direction,
+        }
     }
     
     pub fn parse(&mut self) -> Result<Program> {
         let declarations = self.parse_declarations()?;
         Ok(Program { declarations })
+    }
+
+    /// Parse with spatial information to create a spatial AST
+    pub fn parse_spatial(&mut self) -> Result<SpatialProgram> {
+        // First parse normally to get the regular AST
+        let program = self.parse()?;
+
+        // If we have spatial tokens, create spatial AST
+        if let (Some(spatial_tokens), Some(source_text)) = 
+            (self.spatial_tokens.as_ref(), self.source_text.as_ref()) {
+            
+            // Analyze layout from spatial tokens
+            let layout = CodeLayout::analyze(spatial_tokens)?;
+            
+            // Create source info
+            let source_info = SourceInfo::new(
+                None, // file_path
+                source_text.clone(),
+                self.writing_direction,
+            );
+
+            // Build spatial AST
+            let mut builder = SpatialASTBuilder::new().with_layout(layout);
+            builder.build_program(program, source_info)
+        } else {
+            // Fallback: create minimal spatial program without layout info
+            let layout = CodeLayout::new(self.writing_direction);
+            let source_info = SourceInfo::new(
+                None,
+                self.source_code(),
+                self.writing_direction,
+            );
+            let mut builder = SpatialASTBuilder::new().with_layout(layout);
+            builder.build_program(program, source_info)
+        }
     }
     
     fn parse_declarations(&mut self) -> Result<Vec<Declaration>> {
@@ -330,6 +394,50 @@ impl Parser {
             Span::new(last.span.end, last.span.end, last.span.line, last.span.column)
         } else {
             self.peek().span.clone()
+        }
+    }
+
+    /// Get the spatial token corresponding to the current regular token
+    fn current_spatial_token(&self) -> Option<&SpatialToken> {
+        if let Some(spatial_tokens) = &self.spatial_tokens {
+            // Simple approach: match by content and approximate position
+            // In a production implementation, you'd maintain better correspondence
+            let current_token = self.peek();
+            spatial_tokens.iter()
+                .find(|st| st.content == current_token.lexeme)
+        } else {
+            None
+        }
+    }
+
+    /// Get 2D position for current parsing location
+    fn current_position_2d(&self) -> Position2D {
+        if let Some(spatial_token) = self.current_spatial_token() {
+            spatial_token.span.start
+        } else {
+            // Fallback: convert regular span to 2D position
+            let span = self.current_span();
+            Position2D::new(span.column.saturating_sub(1), span.line.saturating_sub(1), span.start)
+        }
+    }
+
+    /// Check if we're parsing in vertical mode
+    fn is_vertical_mode(&self) -> bool {
+        matches!(self.writing_direction, 
+            WritingDirection::VerticalTbRl | WritingDirection::VerticalTbLr)
+    }
+
+    /// Get layout-aware error context for spatial parsing
+    fn spatial_error_context(&self, expected: Vec<String>, found: String) -> Error {
+        let position = self.current_position_2d();
+        
+        Error::Parser {
+            src: self.source_text.as_ref()
+                .unwrap_or(&self.source_code())
+                .clone(),
+            span: self.current_span().into(),
+            expected,
+            found,
         }
     }
 }

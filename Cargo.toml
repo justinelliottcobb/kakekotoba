@@ -1,3 +1,10 @@
+[workspace]
+resolver = "2"
+members = [
+    ".",
+    "tategaki-ed"
+]
+
 [package]
 name = "kakekotoba"
 version = "0.1.0"
@@ -9,34 +16,15 @@ keywords = ["compiler", "language", "japanese", "haskell", "llvm"]
 categories = ["compilers", "development-tools"]
 
 [dependencies]
-# Core compiler dependencies
-inkwell = { version = "0.4", features = ["llvm18-0"] }
+# Basic dependencies for the main language project
 unicode-segmentation = "1.10"
 nom = "7.1"
-petgraph = "0.6"
 serde = { version = "1.0", features = ["derive"] }
-
-# Enhanced Japanese text processing
-unicode-normalization = "0.1"
-unicode-categories = "0.1"
-icu = "1.4"  # Unicode Collation Algorithm, text segmentation
-
-# Alternative/complementary parsing
-lalrpop = "0.20"  # LR parser generator alternative to nom
-chumsky = "0.9"   # Parser combinator with better error recovery
-rowan = "0.15"    # Lossless syntax trees (used by rust-analyzer)
-
-# Error handling and diagnostics
-miette = { version = "5.0", features = ["fancy"] }
-ariadne = "0.4"   # Source code diagnostics
 thiserror = "1.0"
 anyhow = "1.0"
 
-# CLI and utilities
+# CLI utilities
 clap = { version = "4.0", features = ["derive"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-colored = "2.0"
 
 [dev-dependencies]
 proptest = "1.0"  # Property-based testing for compilers
