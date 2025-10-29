@@ -28,6 +28,7 @@ default = ["gpui", "notcurses"]
 gpui = ["dep:gpui", "dep:cosmic-text"]
 ratatui = ["dep:ratatui", "dep:crossterm"]
 notcurses = ["dep:libnotcurses-sys"]
+compiler-integration = ["dep:kakekotoba"]
 
 [dependencies]
 # Core text processing
@@ -49,12 +50,12 @@ ratatui = { version = "0.26", optional = true }
 crossterm = { version = "0.27", optional = true }
 
 # Notcurses terminal interface (optional)
-libnotcurses-sys = { version = "3.9", optional = true }
+libnotcurses-sys = { version = "3.0", optional = true }
 libc = "0.2"
 nix = { version = "0.27", features = ["term"] }
 
-# Integration with main compiler
-kakekotoba = { path = ".." }
+# Integration with main compiler (optional)
+kakekotoba = { path = "..", optional = true }
 
 [dev-dependencies]
 tokio-test = "0.4"

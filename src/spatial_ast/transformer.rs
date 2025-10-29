@@ -34,7 +34,10 @@ impl SpatialTransformer {
     ) -> Result<SpatialProgram> {
         // Analyze layout from tokens
         let layout = CodeLayout::analyze(tokens)?;
-        self.builder = self.builder.with_layout(layout);
+
+        // Replace builder with updated version
+        let builder = std::mem::replace(&mut self.builder, SpatialASTBuilder::new());
+        self.builder = builder.with_layout(layout);
 
         // Create source info
         let source_info = SourceInfo::new(None, source_text, writing_direction);
@@ -49,9 +52,9 @@ impl SpatialTransformer {
         expr: &ast::Expression,
         span: Span2D,
     ) -> Result<SpatialNode> {
-        let spatial_expr = self.create_spatial_expression(expr, span)?;
+        let spatial_expr = self.create_spatial_expression(expr, span.clone())?;
         let content = SpatialContent::Expression(spatial_expr);
-        
+
         Ok(SpatialNode::new(
             self.next_id(),
             span,
@@ -66,9 +69,9 @@ impl SpatialTransformer {
         stmt: &ast::Statement,
         span: Span2D,
     ) -> Result<SpatialNode> {
-        let spatial_stmt = self.create_spatial_statement(stmt, span)?;
+        let spatial_stmt = self.create_spatial_statement(stmt, span.clone())?;
         let content = SpatialContent::Statement(spatial_stmt);
-        
+
         Ok(SpatialNode::new(
             self.next_id(),
             span,
@@ -83,9 +86,9 @@ impl SpatialTransformer {
         decl: &ast::Declaration,
         span: Span2D,
     ) -> Result<SpatialNode> {
-        let spatial_decl = self.create_spatial_declaration(decl, span)?;
+        let spatial_decl = self.create_spatial_declaration(decl, span.clone())?;
         let content = SpatialContent::Declaration(spatial_decl);
-        
+
         Ok(SpatialNode::new(
             self.next_id(),
             span,
