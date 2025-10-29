@@ -17,6 +17,7 @@ pub mod spatial;
 pub mod japanese;
 pub mod programming;
 pub mod formats;
+pub mod backend;
 
 // Conditional interface modules
 #[cfg(feature = "gpui")]
@@ -29,6 +30,7 @@ pub mod ratatui_interface;
 pub use text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
 pub use spatial::{SpatialPosition, CoordinateSystem};
 pub use japanese::{JapaneseInputMethod, CharacterHandler};
+pub use backend::{RenderBackend, BackendType, BackendSelector, Color, Rect, TextStyle};
 
 /// Error types for the tategaki editor
 #[derive(Debug, thiserror::Error)]
