@@ -146,6 +146,50 @@ cargo run -- input.kake -O -o optimized_output
   写像(h.mapping, elements)
 ```
 
+## Tategaki-Ed Vertical Text Editor
+
+The kakekotoba project includes **tategaki-ed** (縦書きエディタ), a specialized text editor designed for vertical Japanese text editing with vim-like keybindings.
+
+### Editor Features
+
+- **Vertical Japanese Text**: Native support for top-to-bottom, right-to-left tategaki layout
+- **Multiple Backends**: GPUI (GPU-accelerated), notcurses (terminal), and ratatui support
+- **Vim-like Modal Editing**: Complete Normal/Insert/Visual/Command mode system
+- **Unicode Vertical Forms**: Automatic conversion of punctuation (、→︑ 。→︒)
+- **Direction-Aware Navigation**: hjkl navigation adapted for vertical text flow
+- **Bilingual UI**: Status bar and messages in both English and Japanese
+
+### Editor Binaries
+
+```bash
+# Terminal editor with notcurses backend (requires notcurses ≥ 3.0.11)
+cargo build -p tategaki-ed --bin tategaki-ed-terminal --features notcurses
+
+# Terminal editor with ratatui backend
+cargo build -p tategaki-ed --bin tategaki-ed-tui --features ratatui
+
+# GUI editor with GPUI
+cargo build -p tategaki-ed --bin tategaki-ed-gui --features gpui
+```
+
+### Quick Start
+
+```bash
+# Run terminal editor
+./target/debug/tategaki-ed-terminal myfile.kake
+
+# Vim keybindings
+# Normal mode: hjkl (navigate), i (insert), dd (delete line), yy (yank)
+# Command mode: :w (save), :q (quit), :wq (save & quit)
+# Global: Ctrl+S (save), Ctrl+Q (quit)
+```
+
+### Documentation
+
+- **NOTCURSES_BACKEND.md**: Detailed backend implementation documentation
+- **BUILD_STATUS.md**: Build troubleshooting and dependency issues
+- **QUICK_BUILD.md**: Quick reference for building and using the editor
+
 ## Project Architecture
 
 ### Compiler Pipeline
@@ -168,6 +212,7 @@ Source Code → Lexer → Parser → Type Checker → Code Generator → Executa
 - **`src/codegen.rs`**: LLVM IR generation
 - **`src/pipeline.rs`**: Compilation orchestration
 - **`src/error.rs`**: Comprehensive error handling with source locations
+- **`tategaki-ed/`**: Vertical text editor with multiple backend support
 
 ### Key Dependencies
 
