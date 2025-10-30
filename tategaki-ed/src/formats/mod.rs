@@ -231,7 +231,10 @@ impl FileManager {
         );
 
         if !backup_path.exists() {
-            return Err(TategakiError::Io("No backup file found".to_string()));
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "No backup file found"
+            )));
         }
 
         std::fs::copy(&backup_path, path)

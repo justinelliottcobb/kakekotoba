@@ -436,19 +436,19 @@ impl RenderBackend for TerminalBackend {
                 }
             } else {
                 // Draw outline
-                ncplane_putegc_yx(&mut *plane, Some(y), Some(x), "┌", None);
-                ncplane_putegc_yx(&mut *plane, Some(y), Some(x + w - 1), "┐", None);
-                ncplane_putegc_yx(&mut *plane, Some(y + h - 1), Some(x), "└", None);
-                ncplane_putegc_yx(&mut *plane, Some(y + h - 1), Some(x + w - 1), "┘", None);
+                ncplane_putegc_yx(&mut *plane, Some(y as u32), Some(x as u32), "┌", None);
+                ncplane_putegc_yx(&mut *plane, Some(y as u32), Some((x + w - 1) as u32), "┐", None);
+                ncplane_putegc_yx(&mut *plane, Some((y + h - 1) as u32), Some(x as u32), "└", None);
+                ncplane_putegc_yx(&mut *plane, Some((y + h - 1) as u32), Some((x + w - 1) as u32), "┘", None);
 
                 for col in (x + 1)..(x + w - 1) {
-                    ncplane_putegc_yx(&mut *plane, Some(y), Some(col), "─", None);
-                    ncplane_putegc_yx(&mut *plane, Some(y + h - 1), Some(col), "─", None);
+                    ncplane_putegc_yx(&mut *plane, Some(y as u32), Some(col as u32), "─", None);
+                    ncplane_putegc_yx(&mut *plane, Some((y + h - 1) as u32), Some(col as u32), "─", None);
                 }
 
                 for row in (y + 1)..(y + h - 1) {
-                    ncplane_putegc_yx(&mut *plane, Some(row), Some(x), "│", None);
-                    ncplane_putegc_yx(&mut *plane, Some(row), Some(x + w - 1), "│", None);
+                    ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(x as u32), "│", None);
+                    ncplane_putegc_yx(&mut *plane, Some(row as u32), Some((x + w - 1) as u32), "│", None);
                 }
             }
         }

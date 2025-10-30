@@ -333,15 +333,15 @@ impl SpatialFormatHandler {
     }
 
     /// Find annotations at position
-    pub fn find_annotations_at(&self, spatial_meta: &SpatialMetadata, position: SpatialPosition) -> Vec<&SpatialAnnotation> {
+    pub fn find_annotations_at<'a>(&self, spatial_meta: &'a SpatialMetadata, position: SpatialPosition) -> Vec<&'a SpatialAnnotation> {
         spatial_meta.annotations
             .iter()
-            .filter(|ann| ann.range.contains(position))
+            .filter(|ann| ann.range.contains(&position))
             .collect()
     }
 
     /// Get all annotations of specific type
-    pub fn get_annotations_by_type(&self, spatial_meta: &SpatialMetadata, annotation_type: &AnnotationType) -> Vec<&SpatialAnnotation> {
+    pub fn get_annotations_by_type<'a>(&self, spatial_meta: &'a SpatialMetadata, annotation_type: &AnnotationType) -> Vec<&'a SpatialAnnotation> {
         spatial_meta.annotations
             .iter()
             .filter(|ann| std::mem::discriminant(&ann.annotation_type) == std::mem::discriminant(annotation_type))

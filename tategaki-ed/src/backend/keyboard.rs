@@ -331,8 +331,8 @@ impl KeyboardHandler {
         visual_bindings.insert("d".to_string(), EditorCommand::DeleteChar);
         visual_bindings.insert("x".to_string(), EditorCommand::DeleteChar);
 
-        self.bindings.insert(EditorMode::Visual, visual_bindings);
-        self.bindings.insert(EditorMode::VisualLine, visual_bindings.clone());
+        self.bindings.insert(EditorMode::Visual, visual_bindings.clone());
+        self.bindings.insert(EditorMode::VisualLine, visual_bindings);
 
         // === COMMAND MODE ===
         let mut command_bindings = HashMap::new();

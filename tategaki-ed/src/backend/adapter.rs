@@ -6,7 +6,7 @@
 
 use crate::{Result, TategakiError};
 use crate::text_engine::TextDirection;
-use super::{Color, Rect, TextStyle, CursorInfo};
+use super::{Color, Rect, TextStyle, CursorInfo, RenderBackend};
 use super::terminal::TerminalBackend;
 
 /// Adapter for translating GPUI coordinates to terminal cells

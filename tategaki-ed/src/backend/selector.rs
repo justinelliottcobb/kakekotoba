@@ -112,18 +112,8 @@ impl BackendSelector {
 
     /// Check if we're running in a TTY
     fn is_tty() -> bool {
-        #[cfg(unix)]
-        {
-            use nix::unistd::isatty;
-            isatty(libc::STDIN_FILENO).unwrap_or(false)
-                && isatty(libc::STDOUT_FILENO).unwrap_or(false)
-        }
-
-        #[cfg(not(unix))]
-        {
-            // On non-Unix platforms, check for TERM environment variable
-            std::env::var("TERM").is_ok()
-        }
+        use std::io::IsTerminal;
+        std::io::stdin().is_terminal() && std::io::stdout().is_terminal()
     }
 
     /// Check if a display server is available (for GPUI)

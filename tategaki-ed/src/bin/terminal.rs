@@ -124,7 +124,7 @@ impl TerminalEditor {
         let backend = TerminalBackend::new()?;
         let direction = config.text_direction;
         let keyboard = KeyboardHandler::new(direction);
-        let cursor = SpatialPosition { column: 0, row: 0 };
+        let cursor = SpatialPosition { column: 0, row: 0, byte_offset: 0 };
 
         Ok(Self {
             backend,
@@ -271,17 +271,19 @@ impl TerminalEditor {
                     self.modified = true;
                 } else {
                     // Insert regular character
+                    let cursor_col = self.cursor.column;
                     let line = self.current_line_mut();
-                    let byte_pos = line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
+                    let byte_pos = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
                     line.insert(byte_pos, *ch);
                     self.cursor.column += 1;
                     self.modified = true;
                 }
             }
             EditorCommand::DeleteChar => {
+                let cursor_col = self.cursor.column;
                 let line = self.current_line_mut();
-                if self.cursor.column < line.chars().count() {
-                    let byte_pos = line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
+                if cursor_col < line.chars().count() {
+                    let byte_pos = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
                     line.remove(byte_pos);
                     self.modified = true;
                 }
@@ -289,8 +291,9 @@ impl TerminalEditor {
             EditorCommand::DeleteCharBackward => {
                 if self.cursor.column > 0 {
                     self.cursor.column -= 1;
+                    let cursor_col = self.cursor.column;
                     let line = self.current_line_mut();
-                    let byte_pos = line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
+                    let byte_pos = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
                     line.remove(byte_pos);
                     self.modified = true;
                 } else if self.cursor.row > 0 {
@@ -407,6 +410,7 @@ impl TerminalEditor {
                     position: SpatialPosition {
                         column: cursor_x as usize,
                         row: cursor_y as usize,
+                        byte_offset: 0,
                     },
                     color: cursor_color,
                     style: if self.keyboard.mode() == EditorMode::Insert {
@@ -436,6 +440,7 @@ impl TerminalEditor {
                     position: SpatialPosition {
                         column: self.cursor.column + 1,
                         row: screen_row,
+                        byte_offset: 0,
                     },
                     color: cursor_color,
                     style: if self.keyboard.mode() == EditorMode::Insert {

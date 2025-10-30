@@ -229,7 +229,10 @@ impl MarkdownHandler {
             if let Some(direction) = metadata.text_direction {
                 let direction_str = match direction {
                     TextDirection::VerticalTopToBottom => "vertical",
+                    TextDirection::VerticalTopToBottomLtr => "vertical-ltr",
                     TextDirection::HorizontalLeftToRight => "horizontal",
+                    TextDirection::HorizontalRightToLeft => "horizontal-rtl",
+                    TextDirection::Mixed => "mixed",
                 };
                 directives.push_str(&format!("text_direction: {}\n", direction_str));
             }
@@ -426,7 +429,10 @@ impl FileHandler for MarkdownHandler {
         let size = crate::formats::utils::file_size(path)?;
         if size > 10 * 1024 * 1024 { // 10MB limit for markdown
             return Err(TategakiError::Io(
-                format!("Markdown file too large ({} bytes). Maximum: 10MB", size)
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("Markdown file too large ({} bytes). Maximum: 10MB", size)
+                )
             ));
         }
 
