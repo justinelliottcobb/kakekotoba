@@ -37,25 +37,34 @@ pub use backend::{RenderBackend, BackendType, BackendSelector, Color, Rect, Text
 pub enum TategakiError {
     #[error("Text buffer error: {0}")]
     TextBuffer(String),
-    
+
     #[error("Spatial positioning error: {0}")]
     Spatial(String),
-    
+
     #[error("Japanese input error: {0}")]
     Japanese(String),
-    
+
     #[error("File format error: {0}")]
     Format(String),
-    
+
+    #[error("Invalid format: {0}")]
+    InvalidFormat(String),
+
+    #[error("Unsupported format: {0}")]
+    UnsupportedFormat(String),
+
+    #[error("Serialization error: {0}")]
+    Serialization(String),
+
     #[error("Rendering error: {0}")]
     Rendering(String),
-    
+
     #[error("Input/Output error: {0}")]
     Io(#[from] std::io::Error),
-    
+
     #[error("Unicode error: {0}")]
     Unicode(String),
-    
+
     #[error("Integration error with kakekotoba: {0}")]
     Integration(String),
 }

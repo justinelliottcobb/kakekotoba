@@ -257,11 +257,26 @@ impl TerminalEditor {
 
             // Editing
             EditorCommand::InsertChar(ch) => {
-                let line = self.current_line_mut();
-                let byte_pos = line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
-                line.insert(byte_pos, *ch);
-                self.cursor.column += 1;
-                self.modified = true;
+                if *ch == '\n' {
+                    // Handle newline: split line at cursor
+                    let current_line = self.current_line().to_string();
+                    let byte_pos: usize = current_line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
+
+                    let (before, after) = current_line.split_at(byte_pos);
+                    self.lines[self.cursor.row] = before.to_string();
+                    self.lines.insert(self.cursor.row + 1, after.to_string());
+
+                    self.cursor.row += 1;
+                    self.cursor.column = 0;
+                    self.modified = true;
+                } else {
+                    // Insert regular character
+                    let line = self.current_line_mut();
+                    let byte_pos = line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
+                    line.insert(byte_pos, *ch);
+                    self.cursor.column += 1;
+                    self.modified = true;
+                }
             }
             EditorCommand::DeleteChar => {
                 let line = self.current_line_mut();
@@ -534,16 +549,35 @@ impl TerminalEditor {
     }
 
     fn handle_input(&mut self) -> Result<()> {
-        // TODO: Replace this placeholder with actual notcurses input
-        // For now, simulate some key presses for testing
-        // In real implementation:
-        // 1. Use notcurses_get_nblock() to get input events
-        // 2. Parse the event into KeyInput
-        // 3. Process through keyboard handler
-        // 4. Execute resulting command
+        #[cfg(feature = "notcurses")]
+        {
+            // Get input from notcurses backend
+            if let Some((key, ctrl, alt, shift)) = self.backend.get_input() {
+                // Convert notcurses input to KeyInput
+                let key_input = KeyInput::from_notcurses_key(key, ctrl, alt, shift);
 
-        // Placeholder: just sleep to avoid busy loop
-        std::thread::sleep(std::time::Duration::from_millis(16));
+                if self.debug {
+                    self.message = format!("Key: {:?}", key_input);
+                }
+
+                // Process key through keyboard handler
+                let command = self.keyboard.process_key(key_input)?;
+
+                // Execute mode changes through keyboard handler
+                self.keyboard.execute_command(&command)?;
+
+                // Execute the command in the editor
+                self.execute_command(&command)?;
+            } else {
+                // No input available, short sleep to avoid busy loop
+                std::thread::sleep(std::time::Duration::from_millis(16));
+            }
+        }
+
+        #[cfg(not(feature = "notcurses"))]
+        {
+            std::thread::sleep(std::time::Duration::from_millis(16));
+        }
 
         Ok(())
     }

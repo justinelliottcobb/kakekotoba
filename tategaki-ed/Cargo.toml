@@ -36,6 +36,7 @@ unicode-segmentation = "1.10"
 unicode-bidi = "0.3"
 unicode-normalization = "0.1"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 anyhow = "1.0"
 thiserror = "1.0"
 tracing = "0.1"
@@ -52,7 +53,6 @@ crossterm = { version = "0.27", optional = true }
 # Notcurses terminal interface (optional)
 libnotcurses-sys = { version = "3.0", optional = true }
 libc = "0.2"
-nix = { version = "0.27", features = ["term"] }
 
 # Integration with main compiler (optional)
 kakekotoba = { path = "..", optional = true }
