@@ -107,7 +107,10 @@ impl Default for SpatialMetadata {
 impl FileHandler for SpatialFormatHandler {
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)> {
         let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read spatial file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read spatial file: {}", e)
+            )))?;
 
         let spatial_file: SpatialFile = serde_json::from_str(&content)
             .map_err(|e| TategakiError::InvalidFormat(format!("Invalid spatial format: {}", e)))?;
@@ -145,12 +148,18 @@ impl FileHandler for SpatialFormatHandler {
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(format!("Failed to create directory: {}", e)))?;
+                .map_err(|e| TategakiError::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("Failed to create directory: {}", e)
+                )))?;
         }
 
         // Write to file
         std::fs::write(path, json_content)
-            .map_err(|e| TategakiError::Io(format!("Failed to write spatial file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to write spatial file: {}", e)
+            )))?;
 
         Ok(())
     }
@@ -165,12 +174,18 @@ impl FileHandler for SpatialFormatHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            return Err(TategakiError::Io(format!("File does not exist: {}", path.display())));
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("File does not exist: {}", path.display())
+            )));
         }
 
         // Check if it's a valid JSON file
         let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read file: {}", e)
+            )))?;
 
         // Try to parse as JSON
         let json_value: serde_json::Value = serde_json::from_str(&content)
@@ -233,11 +248,13 @@ impl SpatialFormatHandler {
         }
 
         let created_at = spatial.created_at
-            .and_then(|s| s.parse::<std::time::SystemTime>().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
             .or_else(|| path.metadata().ok().and_then(|m| m.created().ok()));
 
         let modified_at = spatial.modified_at
-            .and_then(|s| s.parse::<std::time::SystemTime>().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
             .or_else(|| path.metadata().ok().and_then(|m| m.modified().ok()));
 
         Ok(FileMetadata {

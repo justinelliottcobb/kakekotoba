@@ -117,7 +117,7 @@ impl MarkdownHandler {
                             if let Some(ref mut pos) = metadata.cursor_position {
                                 pos.row = row;
                             } else {
-                                metadata.cursor_position = Some(SpatialPosition { row, column: 0 });
+                                metadata.cursor_position = Some(SpatialPosition { row, column: 0, byte_offset: 0 });
                             }
                         }
                     }
@@ -126,7 +126,7 @@ impl MarkdownHandler {
                             if let Some(ref mut pos) = metadata.cursor_position {
                                 pos.column = column;
                             } else {
-                                metadata.cursor_position = Some(SpatialPosition { row: 0, column });
+                                metadata.cursor_position = Some(SpatialPosition { row: 0, column, byte_offset: 0 });
                             }
                         }
                     }
@@ -209,7 +209,7 @@ impl MarkdownHandler {
                 }
 
                 if let (Some(r), Some(c)) = (row, column) {
-                    Some(VerticalDirective::Cursor(SpatialPosition { row: r, column: c }))
+                    Some(VerticalDirective::Cursor(SpatialPosition { row: r, column: c, byte_offset: 0 }))
                 } else {
                     None
                 }
@@ -315,7 +315,7 @@ impl MarkdownMetadata {
 impl FileHandler for MarkdownHandler {
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)> {
         let raw_content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read markdown file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to read markdown file: {}", e))))?;
 
         let (content, md_metadata) = if self.parse_vertical_directives {
             self.parse_vertical_directives(&raw_content)
@@ -399,12 +399,12 @@ impl FileHandler for MarkdownHandler {
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(format!("Failed to create directory: {}", e)))?;
+                .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to create directory: {}", e))))?;
         }
 
         // Write file
         std::fs::write(path, final_content)
-            .map_err(|e| TategakiError::Io(format!("Failed to write markdown file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to write markdown file: {}", e))))?;
 
         Ok(())
     }
@@ -419,7 +419,7 @@ impl FileHandler for MarkdownHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            return Err(TategakiError::Io(format!("File does not exist: {}", path.display())));
+            return Err(TategakiError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, format!("File does not exist: {}", path.display()))));
         }
 
         // Check if file is too large

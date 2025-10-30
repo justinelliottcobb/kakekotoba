@@ -19,7 +19,7 @@ pub use markdown::*;
 pub use json::*;
 
 /// Supported file formats
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FileFormat {
     /// Plain text (.txt)
     PlainText,
@@ -219,7 +219,7 @@ impl FileManager {
         );
 
         std::fs::copy(path, &backup_path)
-            .map_err(|e| TategakiError::Io(format!("Failed to create backup: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to create backup: {}", e))))?;
 
         Ok(())
     }
@@ -235,11 +235,11 @@ impl FileManager {
         }
 
         std::fs::copy(&backup_path, path)
-            .map_err(|e| TategakiError::Io(format!("Failed to restore backup: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to restore backup: {}", e))))?;
 
         // Optionally remove backup after successful restore
         std::fs::remove_file(&backup_path)
-            .map_err(|e| TategakiError::Io(format!("Failed to remove backup: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to remove backup: {}", e))))?;
 
         Ok(())
     }
@@ -270,11 +270,11 @@ pub mod utils {
     /// Detect file encoding
     pub fn detect_encoding(path: &Path) -> Result<String> {
         let mut file = std::fs::File::open(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to open file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to open file: {}", e))))?;
         
         let mut buffer = [0; 1024];
         let bytes_read = file.read(&mut buffer)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to read file: {}", e))))?;
 
         // Simple UTF-8 validation
         if std::str::from_utf8(&buffer[..bytes_read]).is_ok() {
@@ -288,11 +288,11 @@ pub mod utils {
     /// Check if file is binary
     pub fn is_binary_file(path: &Path) -> Result<bool> {
         let mut file = std::fs::File::open(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to open file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to open file: {}", e))))?;
         
         let mut buffer = [0; 512];
         let bytes_read = file.read(&mut buffer)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to read file: {}", e))))?;
 
         // Simple heuristic: if more than 30% of bytes are non-printable, consider binary
         let non_printable = buffer[..bytes_read]
@@ -306,7 +306,7 @@ pub mod utils {
     /// Get file size
     pub fn file_size(path: &Path) -> Result<u64> {
         let metadata = std::fs::metadata(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to get file metadata: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to get file metadata: {}", e))))?;
         Ok(metadata.len())
     }
 

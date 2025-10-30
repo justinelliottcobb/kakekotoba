@@ -27,7 +27,10 @@ impl PlainTextHandler {
     /// Read file content as string
     fn read_file_content(&self, path: &Path) -> Result<String> {
         std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file {}: {}", path.display(), e)))
+            .map_err(|e| TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read file {}: {}", path.display(), e)
+            )))
     }
 
     /// Write string content to file
@@ -35,11 +38,17 @@ impl PlainTextHandler {
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(format!("Failed to create directory {}: {}", parent.display(), e)))?;
+                .map_err(|e| TategakiError::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("Failed to create directory {}: {}", parent.display(), e)
+                )))?;
         }
 
         std::fs::write(path, content)
-            .map_err(|e| TategakiError::Io(format!("Failed to write file {}: {}", path.display(), e)))
+            .map_err(|e| TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to write file {}: {}", path.display(), e)
+            )))
     }
 
     /// Detect text direction from content heuristics
@@ -135,7 +144,10 @@ impl FileHandler for PlainTextHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            return Err(TategakiError::Io(format!("File does not exist: {}", path.display())));
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("File does not exist: {}", path.display())
+            )));
         }
 
         // Check if file is binary
@@ -239,13 +251,17 @@ impl FileHandler for ExtendedPlainTextHandler {
         // Check file size limit
         let size = crate::formats::utils::file_size(path)?;
         if size > self.max_file_size {
-            return Err(TategakiError::Io(
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
                 format!("File too large ({} bytes). Maximum allowed: {} bytes", size, self.max_file_size)
-            ));
+            )));
         }
 
         let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read file: {}", e)
+            )))?;
 
         // Detect and store original line ending style
         let line_ending_style = if self.preserve_line_endings {
@@ -313,13 +329,14 @@ impl FileHandler for ExtendedPlainTextHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         self.base.validate(path)?;
-        
+
         // Additional validation for extended handler
         let size = crate::formats::utils::file_size(path)?;
         if size > self.max_file_size {
-            return Err(TategakiError::Io(
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
                 format!("File exceeds maximum size limit ({} > {})", size, self.max_file_size)
-            ));
+            )));
         }
 
         Ok(())

@@ -209,18 +209,10 @@ impl BackendType {
         match self {
             #[cfg(feature = "gpui")]
             BackendType::Gpui => true,
-            #[cfg(not(feature = "gpui"))]
-            BackendType::Gpui => false,
-
             #[cfg(feature = "notcurses")]
             BackendType::Notcurses => true,
-            #[cfg(not(feature = "notcurses"))]
-            BackendType::Notcurses => false,
-
             #[cfg(feature = "ratatui")]
             BackendType::Ratatui => true,
-            #[cfg(not(feature = "ratatui"))]
-            BackendType::Ratatui => false,
         }
     }
 
@@ -229,18 +221,10 @@ impl BackendType {
         match self {
             #[cfg(feature = "gpui")]
             BackendType::Gpui => "GPUI (GPU-accelerated)",
-            #[cfg(not(feature = "gpui"))]
-            BackendType::Gpui => "GPUI (unavailable)",
-
             #[cfg(feature = "notcurses")]
             BackendType::Notcurses => "Notcurses (Terminal)",
-            #[cfg(not(feature = "notcurses"))]
-            BackendType::Notcurses => "Notcurses (unavailable)",
-
             #[cfg(feature = "ratatui")]
             BackendType::Ratatui => "Ratatui (Terminal)",
-            #[cfg(not(feature = "ratatui"))]
-            BackendType::Ratatui => "Ratatui (unavailable)",
         }
     }
 }

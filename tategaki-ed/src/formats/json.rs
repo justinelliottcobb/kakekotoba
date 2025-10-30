@@ -264,7 +264,7 @@ impl Default for JsonContent {
 impl FileHandler for JsonHandler {
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)> {
         let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read JSON file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to read JSON file: {}", e))))?;
 
         let json_doc: JsonDocument = serde_json::from_str(&content)
             .map_err(|e| TategakiError::InvalidFormat(format!("Invalid JSON format: {}", e)))?;
@@ -299,12 +299,12 @@ impl FileHandler for JsonHandler {
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(format!("Failed to create directory: {}", e)))?;
+                .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to create directory: {}", e))))?;
         }
 
         // Write to file
         std::fs::write(path, json_content)
-            .map_err(|e| TategakiError::Io(format!("Failed to write JSON file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to write JSON file: {}", e))))?;
 
         Ok(())
     }
@@ -319,12 +319,12 @@ impl FileHandler for JsonHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            return Err(TategakiError::Io(format!("File does not exist: {}", path.display())));
+            return Err(TategakiError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, format!("File does not exist: {}", path.display()))));
         }
 
         // Try to parse as JSON
         let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to read file: {}", e))))?;
 
         let json_value: serde_json::Value = serde_json::from_str(&content)
             .map_err(|e| TategakiError::InvalidFormat(format!("Invalid JSON: {}", e)))?;
@@ -384,11 +384,13 @@ impl JsonHandler {
         }
 
         let created_at = json_doc.metadata.created_at
-            .and_then(|s| s.parse::<std::time::SystemTime>().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
             .or_else(|| path.metadata().ok().and_then(|m| m.created().ok()));
 
         let modified_at = json_doc.metadata.modified_at
-            .and_then(|s| s.parse::<std::time::SystemTime>().ok())
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
             .or_else(|| path.metadata().ok().and_then(|m| m.modified().ok()));
 
         Ok(FileMetadata {

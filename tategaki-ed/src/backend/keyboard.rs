@@ -9,7 +9,7 @@ use crate::spatial::SpatialPosition;
 use std::collections::HashMap;
 
 /// Editor modes
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EditorMode {
     /// Normal mode - navigation and commands
     Normal,

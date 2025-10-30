@@ -8,8 +8,6 @@
 use libnotcurses_sys::c_api::*;
 #[cfg(feature = "notcurses")]
 use std::ptr;
-#[cfg(feature = "notcurses")]
-use libc::timespec;
 use crate::{Result, TategakiError};
 use crate::text_engine::TextDirection;
 use crate::spatial::SpatialPosition;
@@ -29,6 +27,14 @@ pub struct TerminalBackend {
     /// Background color
     bg_color: Color,
 }
+
+// SAFETY: TerminalBackend is designed for single-threaded use.
+// The notcurses library is not thread-safe, but we never actually
+// share the backend across threads in practice.
+#[cfg(feature = "notcurses")]
+unsafe impl Send for TerminalBackend {}
+#[cfg(feature = "notcurses")]
+unsafe impl Sync for TerminalBackend {}
 
 impl TerminalBackend {
     /// Create a new terminal backend
@@ -119,20 +125,16 @@ impl TerminalBackend {
             return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
         }
 
-        // Set colors using channels
-        let fg_rgb = ((style.color.r as u32) << 16) | ((style.color.g as u32) << 8) | (style.color.b as u32);
-        let bg_rgb = if let Some(bg) = style.background {
-            ((bg.r as u32) << 16) | ((bg.g as u32) << 8) | (bg.b as u32)
-        } else {
-            self.color_to_channel(self.bg_color)
-        };
+        // Set colors (cast u8 to unsigned/u32)
+        ncplane_set_fg_rgb8(plane, style.color.r as u32, style.color.g as u32, style.color.b as u32);
+        if let Some(bg) = style.background {
+            ncplane_set_bg_rgb8(plane, bg.r as u32, bg.g as u32, bg.b as u32);
+        }
 
-        // Move cursor and put character
-        ncplane_cursor_move_yx(plane, row as i32, col as i32);
-
+        // Put character at position
         let ch_str = std::ffi::CString::new(ch.to_string())
             .map_err(|_| TategakiError::Rendering("Failed to create CString".to_string()))?;
-        ncplane_putstr(plane, ch_str.as_ptr());
+        ncplane_putegc_yx(plane, row as i32, col as i32, ch_str.as_ptr(), ptr::null_mut());
 
         Ok(())
     }
@@ -179,7 +181,7 @@ impl TerminalBackend {
             }
 
             let mut input: ncinput = std::mem::zeroed();
-            let ts = timespec { tv_sec: 0, tv_nsec: 0 };
+            let ts = ffi::timespec { tv_sec: 0, tv_nsec: 0 };
             let result = notcurses_get(self.nc, &ts, &mut input);
 
             if result == 0 {
@@ -257,14 +259,19 @@ impl RenderBackend for TerminalBackend {
 
     #[cfg(feature = "notcurses")]
     fn clear(&mut self, color: Color) -> Result<()> {
-        self.bg_color = color;
-        let plane = self.stdplane_mut()?;
+        unsafe {
+            self.bg_color = color;
+            let plane = self.stdplane();
+            if plane.is_null() {
+                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+            }
 
-        // Set background color and clear
-        plane.set_bg_rgb(NcRgb::from_rgb8(color.r, color.g, color.b));
-        plane.erase();
+            // Set background color using RGB values (cast u8 to u32)
+            ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
+            ncplane_erase(plane);
 
-        Ok(())
+            Ok(())
+        }
     }
 
     #[cfg(not(feature = "notcurses"))]
@@ -320,24 +327,31 @@ impl RenderBackend for TerminalBackend {
 
     #[cfg(feature = "notcurses")]
     fn render_cursor(&mut self, cursor: &CursorInfo) -> Result<()> {
-        let plane = self.stdplane_mut()?;
-        let col = cursor.position.column as u32;
-        let row = cursor.position.row as u32;
+        unsafe {
+            let plane = self.stdplane();
+            if plane.is_null() {
+                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+            }
 
-        // Set cursor color
-        plane.set_fg_rgb(NcRgb::from_rgb8(cursor.color.r, cursor.color.g, cursor.color.b));
+            let col = cursor.position.column as i32;
+            let row = cursor.position.row as i32;
 
-        // Render cursor based on style
-        let cursor_char = match cursor.style {
-            CursorStyle::Block => "█",
-            CursorStyle::Line => "│",
-            CursorStyle::Underline => "_",
-        };
+            // Set cursor color (cast u8 to u32)
+            ncplane_set_fg_rgb8(plane, cursor.color.r as u32, cursor.color.g as u32, cursor.color.b as u32);
 
-        plane.putstr_yx(Some(row), Some(col), cursor_char)
-            .map_err(|_| TategakiError::Rendering("Failed to render cursor".to_string()))?;
+            // Render cursor based on style
+            let cursor_char = match cursor.style {
+                CursorStyle::Block => "█",
+                CursorStyle::Line => "│",
+                CursorStyle::Underline => "_",
+            };
 
-        Ok(())
+            let c_str = std::ffi::CString::new(cursor_char)
+                .map_err(|_| TategakiError::Rendering("Failed to create CString".to_string()))?;
+            ncplane_putegc_yx(plane, row, col, c_str.as_ptr(), ptr::null_mut());
+
+            Ok(())
+        }
     }
 
     #[cfg(not(feature = "notcurses"))]
@@ -347,14 +361,19 @@ impl RenderBackend for TerminalBackend {
 
     fn render_selection(&mut self, bounds: Rect, color: Color) -> Result<()> {
         #[cfg(feature = "notcurses")]
-        {
-            let plane = self.stdplane_mut()?;
-            plane.set_bg_rgb(NcRgb::from_rgb8(color.r, color.g, color.b));
+        unsafe {
+            let plane = self.stdplane();
+            if plane.is_null() {
+                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+            }
+
+            ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
 
             // Fill selection with spaces
-            for y in (bounds.y as u32)..((bounds.y + bounds.height) as u32) {
-                for x in (bounds.x as u32)..((bounds.x + bounds.width) as u32) {
-                    let _ = plane.putstr_yx(Some(y), Some(x), " ");
+            let space = std::ffi::CString::new(" ").unwrap();
+            for y in (bounds.y as i32)..((bounds.y + bounds.height) as i32) {
+                for x in (bounds.x as i32)..((bounds.x + bounds.width) as i32) {
+                    ncplane_putegc_yx(plane, y, x, space.as_ptr(), ptr::null_mut());
                 }
             }
         }
@@ -369,24 +388,30 @@ impl RenderBackend for TerminalBackend {
         _thickness: f32,
     ) -> Result<()> {
         #[cfg(feature = "notcurses")]
-        {
-            let plane = self.stdplane_mut()?;
-            plane.set_fg_rgb(NcRgb::from_rgb8(color.r, color.g, color.b));
+        unsafe {
+            let plane = self.stdplane();
+            if plane.is_null() {
+                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+            }
 
-            let from_col = from.0 as u32;
-            let from_row = from.1 as u32;
-            let to_col = to.0 as u32;
-            let to_row = to.1 as u32;
+            ncplane_set_fg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
+
+            let from_col = from.0 as i32;
+            let from_row = from.1 as i32;
+            let to_col = to.0 as i32;
+            let to_row = to.1 as i32;
 
             if from_row == to_row {
                 // Horizontal line
+                let h_line = std::ffi::CString::new("─").unwrap();
                 for col in from_col..=to_col {
-                    let _ = plane.putstr_yx(Some(from_row), Some(col), "─");
+                    ncplane_putegc_yx(plane, from_row, col, h_line.as_ptr(), ptr::null_mut());
                 }
             } else if from_col == to_col {
                 // Vertical line
+                let v_line = std::ffi::CString::new("│").unwrap();
                 for row in from_row..=to_row {
-                    let _ = plane.putstr_yx(Some(row), Some(from_col), "│");
+                    ncplane_putegc_yx(plane, row, from_col, v_line.as_ptr(), ptr::null_mut());
                 }
             }
         }
@@ -395,37 +420,51 @@ impl RenderBackend for TerminalBackend {
 
     fn render_rect(&mut self, bounds: Rect, color: Color, filled: bool) -> Result<()> {
         #[cfg(feature = "notcurses")]
-        {
-            let plane = self.stdplane_mut()?;
-            plane.set_fg_rgb(NcRgb::from_rgb8(color.r, color.g, color.b));
+        unsafe {
+            let plane = self.stdplane();
+            if plane.is_null() {
+                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+            }
 
-            let x = bounds.x as u32;
-            let y = bounds.y as u32;
-            let w = bounds.width as u32;
-            let h = bounds.height as u32;
+            ncplane_set_fg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
+
+            let x = bounds.x as i32;
+            let y = bounds.y as i32;
+            let w = bounds.width as i32;
+            let h = bounds.height as i32;
 
             if filled {
-                plane.set_bg_rgb(NcRgb::from_rgb8(color.r, color.g, color.b));
+                ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
+                let space = std::ffi::CString::new(" ").unwrap();
                 for row in y..(y + h) {
                     for col in x..(x + w) {
-                        let _ = plane.putstr_yx(Some(row), Some(col), " ");
+                        ncplane_putegc_yx(plane, row, col, space.as_ptr(), ptr::null_mut());
                     }
                 }
             } else {
                 // Draw outline
-                let _ = plane.putstr_yx(Some(y), Some(x), "┌");
-                let _ = plane.putstr_yx(Some(y), Some(x + w - 1), "┐");
-                let _ = plane.putstr_yx(Some(y + h - 1), Some(x), "└");
-                let _ = plane.putstr_yx(Some(y + h - 1), Some(x + w - 1), "┘");
+                let corners = [
+                    std::ffi::CString::new("┌").unwrap(),
+                    std::ffi::CString::new("┐").unwrap(),
+                    std::ffi::CString::new("└").unwrap(),
+                    std::ffi::CString::new("┘").unwrap(),
+                ];
+                let h_line = std::ffi::CString::new("─").unwrap();
+                let v_line = std::ffi::CString::new("│").unwrap();
+
+                ncplane_putegc_yx(plane, y, x, corners[0].as_ptr(), ptr::null_mut());
+                ncplane_putegc_yx(plane, y, x + w - 1, corners[1].as_ptr(), ptr::null_mut());
+                ncplane_putegc_yx(plane, y + h - 1, x, corners[2].as_ptr(), ptr::null_mut());
+                ncplane_putegc_yx(plane, y + h - 1, x + w - 1, corners[3].as_ptr(), ptr::null_mut());
 
                 for col in (x + 1)..(x + w - 1) {
-                    let _ = plane.putstr_yx(Some(y), Some(col), "─");
-                    let _ = plane.putstr_yx(Some(y + h - 1), Some(col), "─");
+                    ncplane_putegc_yx(plane, y, col, h_line.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(plane, y + h - 1, col, h_line.as_ptr(), ptr::null_mut());
                 }
 
                 for row in (y + 1)..(y + h - 1) {
-                    let _ = plane.putstr_yx(Some(row), Some(x), "│");
-                    let _ = plane.putstr_yx(Some(row), Some(x + w - 1), "│");
+                    ncplane_putegc_yx(plane, row, x, v_line.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(plane, row, x + w - 1, v_line.as_ptr(), ptr::null_mut());
                 }
             }
         }
@@ -434,9 +473,16 @@ impl RenderBackend for TerminalBackend {
 
     #[cfg(feature = "notcurses")]
     fn present(&mut self) -> Result<()> {
-        if let Some(ref mut nc) = self.nc {
-            nc.render()
-                .map_err(|_| TategakiError::Rendering("Failed to render".to_string()))?;
+        unsafe {
+            if self.nc.is_null() {
+                return Err(TategakiError::Rendering("Notcurses not initialized".to_string()));
+            }
+
+            let stdplane = notcurses_stdplane(self.nc);
+            if !stdplane.is_null() {
+                ncpile_render(stdplane);
+                ncpile_rasterize(stdplane);
+            }
         }
         Ok(())
     }
