@@ -288,7 +288,7 @@ enum VerticalDirective {
 }
 
 /// Column specification for vertical layout
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ColumnSpec {
     pub width: usize,
     pub height: usize,

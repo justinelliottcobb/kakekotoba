@@ -132,9 +132,8 @@ impl TerminalBackend {
         }
 
         // Put character at position
-        let ch_str = std::ffi::CString::new(ch.to_string())
-            .map_err(|_| TategakiError::Rendering("Failed to create CString".to_string()))?;
-        ncplane_putegc_yx(plane, row as i32, col as i32, ch_str.as_ptr(), ptr::null_mut());
+        let ch_str = ch.to_string();
+        ncplane_putegc_yx(&mut *plane, Some(row), Some(col), &ch_str, None);
 
         Ok(())
     }
@@ -346,9 +345,7 @@ impl RenderBackend for TerminalBackend {
                 CursorStyle::Underline => "_",
             };
 
-            let c_str = std::ffi::CString::new(cursor_char)
-                .map_err(|_| TategakiError::Rendering("Failed to create CString".to_string()))?;
-            ncplane_putegc_yx(plane, row, col, c_str.as_ptr(), ptr::null_mut());
+            ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(col as u32), &cursor_char, None);
 
             Ok(())
         }
@@ -370,10 +367,9 @@ impl RenderBackend for TerminalBackend {
             ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
 
             // Fill selection with spaces
-            let space = std::ffi::CString::new(" ").unwrap();
             for y in (bounds.y as i32)..((bounds.y + bounds.height) as i32) {
                 for x in (bounds.x as i32)..((bounds.x + bounds.width) as i32) {
-                    ncplane_putegc_yx(plane, y, x, space.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(&mut *plane, Some(y as u32), Some(x as u32), " ", None);
                 }
             }
         }
@@ -403,15 +399,13 @@ impl RenderBackend for TerminalBackend {
 
             if from_row == to_row {
                 // Horizontal line
-                let h_line = std::ffi::CString::new("─").unwrap();
                 for col in from_col..=to_col {
-                    ncplane_putegc_yx(plane, from_row, col, h_line.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(&mut *plane, Some(from_row as u32), Some(col as u32), "─", None);
                 }
             } else if from_col == to_col {
                 // Vertical line
-                let v_line = std::ffi::CString::new("│").unwrap();
                 for row in from_row..=to_row {
-                    ncplane_putegc_yx(plane, row, from_col, v_line.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(from_col as u32), "│", None);
                 }
             }
         }
@@ -435,36 +429,26 @@ impl RenderBackend for TerminalBackend {
 
             if filled {
                 ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
-                let space = std::ffi::CString::new(" ").unwrap();
                 for row in y..(y + h) {
                     for col in x..(x + w) {
-                        ncplane_putegc_yx(plane, row, col, space.as_ptr(), ptr::null_mut());
+                        ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(col as u32), " ", None);
                     }
                 }
             } else {
                 // Draw outline
-                let corners = [
-                    std::ffi::CString::new("┌").unwrap(),
-                    std::ffi::CString::new("┐").unwrap(),
-                    std::ffi::CString::new("└").unwrap(),
-                    std::ffi::CString::new("┘").unwrap(),
-                ];
-                let h_line = std::ffi::CString::new("─").unwrap();
-                let v_line = std::ffi::CString::new("│").unwrap();
-
-                ncplane_putegc_yx(plane, y, x, corners[0].as_ptr(), ptr::null_mut());
-                ncplane_putegc_yx(plane, y, x + w - 1, corners[1].as_ptr(), ptr::null_mut());
-                ncplane_putegc_yx(plane, y + h - 1, x, corners[2].as_ptr(), ptr::null_mut());
-                ncplane_putegc_yx(plane, y + h - 1, x + w - 1, corners[3].as_ptr(), ptr::null_mut());
+                ncplane_putegc_yx(&mut *plane, Some(y), Some(x), "┌", None);
+                ncplane_putegc_yx(&mut *plane, Some(y), Some(x + w - 1), "┐", None);
+                ncplane_putegc_yx(&mut *plane, Some(y + h - 1), Some(x), "└", None);
+                ncplane_putegc_yx(&mut *plane, Some(y + h - 1), Some(x + w - 1), "┘", None);
 
                 for col in (x + 1)..(x + w - 1) {
-                    ncplane_putegc_yx(plane, y, col, h_line.as_ptr(), ptr::null_mut());
-                    ncplane_putegc_yx(plane, y + h - 1, col, h_line.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(&mut *plane, Some(y), Some(col), "─", None);
+                    ncplane_putegc_yx(&mut *plane, Some(y + h - 1), Some(col), "─", None);
                 }
 
                 for row in (y + 1)..(y + h - 1) {
-                    ncplane_putegc_yx(plane, row, x, v_line.as_ptr(), ptr::null_mut());
-                    ncplane_putegc_yx(plane, row, x + w - 1, v_line.as_ptr(), ptr::null_mut());
+                    ncplane_putegc_yx(&mut *plane, Some(row), Some(x), "│", None);
+                    ncplane_putegc_yx(&mut *plane, Some(row), Some(x + w - 1), "│", None);
                 }
             }
         }
