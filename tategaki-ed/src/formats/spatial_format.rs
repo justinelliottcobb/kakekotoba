@@ -420,8 +420,8 @@ mod tests {
     fn test_annotation_creation() {
         let handler = SpatialFormatHandler::new();
         let range = SpatialRange {
-            start: SpatialPosition { row: 0, column: 0 },
-            end: SpatialPosition { row: 0, column: 5 },
+            start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
+            end: SpatialPosition { row: 0, column: 5, byte_offset: 0 },
         };
         
         let annotation = handler.create_annotation(
@@ -445,7 +445,7 @@ mod tests {
         let mut metadata = FileMetadata {
             format: FileFormat::Spatial,
             text_direction: TextDirection::VerticalTopToBottom,
-            cursor_position: Some(SpatialPosition { row: 1, column: 5 }),
+            cursor_position: Some(SpatialPosition { row: 1, column: 5, byte_offset: 0 }),
             encoding: "UTF-8".to_string(),
             ..FileMetadata::default()
         };
@@ -464,7 +464,7 @@ mod tests {
         assert_eq!(loaded_buffer.as_text(), test_content);
         assert_eq!(loaded_metadata.format, FileFormat::Spatial);
         assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 5 }));
+        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 5, byte_offset: 0 }));
         assert_eq!(loaded_metadata.properties.get("test_prop"), Some(&"test_value".to_string()));
         
         Ok(())
@@ -474,13 +474,13 @@ mod tests {
     fn test_json_serialization() -> Result<()> {
         let mut spatial_file = SpatialFile::default();
         spatial_file.content = "Test content".to_string();
-        spatial_file.metadata.cursor_position = Some(SpatialPosition { row: 0, column: 5 });
-        
+        spatial_file.metadata.cursor_position = Some(SpatialPosition { row: 0, column: 5, byte_offset: 0 });
+
         // Add annotation
         let annotation = SpatialAnnotation {
             range: SpatialRange {
-                start: SpatialPosition { row: 0, column: 0 },
-                end: SpatialPosition { row: 0, column: 4 },
+                start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
+                end: SpatialPosition { row: 0, column: 4, byte_offset: 0 },
             },
             annotation_type: AnnotationType::Highlight,
             content: "Important".to_string(),
@@ -495,7 +495,7 @@ mod tests {
         let deserialized: SpatialFile = serde_json::from_str(&json).unwrap();
         
         assert_eq!(deserialized.content, "Test content");
-        assert_eq!(deserialized.metadata.cursor_position, Some(SpatialPosition { row: 0, column: 5 }));
+        assert_eq!(deserialized.metadata.cursor_position, Some(SpatialPosition { row: 0, column: 5, byte_offset: 0 }));
         assert_eq!(deserialized.metadata.annotations.len(), 1);
         assert!(matches!(deserialized.metadata.annotations[0].annotation_type, AnnotationType::Highlight));
         
@@ -510,19 +510,19 @@ mod tests {
         // Create test annotation
         let annotation = handler.create_annotation(
             SpatialRange {
-                start: SpatialPosition { row: 0, column: 0 },
-                end: SpatialPosition { row: 0, column: 5 },
+                start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
+                end: SpatialPosition { row: 0, column: 5, byte_offset: 0 },
             },
             AnnotationType::Comment,
             "Test comment".to_string(),
         );
-        
+
         // Add annotation
         handler.add_annotation(&mut spatial_meta, annotation);
         assert_eq!(spatial_meta.annotations.len(), 1);
-        
+
         // Find annotations at position
-        let position = SpatialPosition { row: 0, column: 2 };
+        let position = SpatialPosition { row: 0, column: 2, byte_offset: 0 };
         let found = handler.find_annotations_at(&spatial_meta, position);
         assert_eq!(found.len(), 1);
         

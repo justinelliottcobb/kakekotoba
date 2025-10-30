@@ -515,7 +515,7 @@ Some content here.
         let (parsed_content, metadata) = handler.parse_vertical_directives(content);
         
         assert_eq!(metadata.text_direction, Some(TextDirection::VerticalTopToBottom));
-        assert_eq!(metadata.cursor_position, Some(SpatialPosition { row: 2, column: 5 }));
+        assert_eq!(metadata.cursor_position, Some(SpatialPosition { row: 2, column: 5, byte_offset: 0 }));
         assert_eq!(metadata.custom_properties.get("custom_prop"), Some(&"test_value".to_string()));
         assert!(parsed_content.contains("# Test Markdown"));
         assert!(!parsed_content.contains("---"));
@@ -531,7 +531,7 @@ Some content here.
         let mut metadata = FileMetadata {
             format: FileFormat::Markdown,
             text_direction: TextDirection::VerticalTopToBottom,
-            cursor_position: Some(SpatialPosition { row: 1, column: 10 }),
+            cursor_position: Some(SpatialPosition { row: 1, column: 10, byte_offset: 0 }),
             encoding: "UTF-8".to_string(),
             ..FileMetadata::default()
         };
@@ -557,7 +557,7 @@ Some content here.
         assert_eq!(loaded_buffer.as_text(), test_content);
         assert_eq!(loaded_metadata.format, FileFormat::Markdown);
         assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 10 }));
+        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 10, byte_offset: 0 }));
         assert_eq!(loaded_metadata.properties.get("md_author"), Some(&"Test Author".to_string()));
         
         Ok(())
@@ -568,7 +568,7 @@ Some content here.
         let handler = MarkdownHandler::new();
         let mut metadata = MarkdownMetadata {
             text_direction: Some(TextDirection::VerticalTopToBottom),
-            cursor_position: Some(SpatialPosition { row: 5, column: 10 }),
+            cursor_position: Some(SpatialPosition { row: 5, column: 10, byte_offset: 0 }),
             column_specs: vec![ColumnSpec { width: 20, height: 40 }],
             custom_properties: {
                 let mut props = std::collections::HashMap::new();

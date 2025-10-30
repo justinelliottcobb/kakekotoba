@@ -524,8 +524,8 @@ mod tests {
     fn test_annotation_creation() {
         let handler = JsonHandler::new();
         let range = SpatialRange {
-            start: SpatialPosition { row: 0, column: 0 },
-            end: SpatialPosition { row: 0, column: 5 },
+            start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
+            end: SpatialPosition { row: 0, column: 5, byte_offset: 0 },
         };
         
         let annotation = handler.create_annotation(
@@ -550,7 +550,7 @@ mod tests {
         let mut metadata = FileMetadata {
             format: FileFormat::Json,
             text_direction: TextDirection::VerticalTopToBottom,
-            cursor_position: Some(SpatialPosition { row: 1, column: 8 }),
+            cursor_position: Some(SpatialPosition { row: 1, column: 8, byte_offset: 0 }),
             encoding: "UTF-8".to_string(),
             ..FileMetadata::default()
         };
@@ -574,7 +574,7 @@ mod tests {
         assert_eq!(loaded_buffer.as_text(), test_content);
         assert_eq!(loaded_metadata.format, FileFormat::Json);
         assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 8 }));
+        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 8, byte_offset: 0 }));
         assert_eq!(loaded_metadata.properties.get("title"), Some(&"Test Document".to_string()));
         assert_eq!(loaded_metadata.properties.get("author"), Some(&"Test Author".to_string()));
         
@@ -585,16 +585,16 @@ mod tests {
     fn test_json_serialization() -> Result<()> {
         let mut doc = JsonDocument::default();
         doc.content.text = "Test content".to_string();
-        doc.content.cursor_position = Some(SpatialPosition { row: 0, column: 5 });
+        doc.content.cursor_position = Some(SpatialPosition { row: 0, column: 5, byte_offset: 0 });
         doc.metadata.title = Some("Test Title".to_string());
-        
+
         // Add annotation
         let annotation = JsonAnnotation {
             id: "test1".to_string(),
             annotation_type: "highlight".to_string(),
             range: SpatialRange {
-                start: SpatialPosition { row: 0, column: 0 },
-                end: SpatialPosition { row: 0, column: 4 },
+                start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
+                end: SpatialPosition { row: 0, column: 4, byte_offset: 0 },
             },
             content: "Important".to_string(),
             style: None,
