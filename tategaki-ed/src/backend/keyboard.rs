@@ -436,11 +436,13 @@ impl KeyboardHandler {
         match input.key.as_str() {
             "Escape" => {
                 self.command_line.clear();
+                self.mode = EditorMode::Normal;
                 return Ok(EditorCommand::EnterNormalMode);
             }
             "Enter" => {
                 let cmd = self.parse_command_line();
                 self.command_line.clear();
+                self.mode = EditorMode::Normal;
                 return Ok(cmd);
             }
             "Backspace" => {
