@@ -89,8 +89,14 @@ impl KeyInput {
     pub fn from_notcurses_key(key_code: u32, ctrl: bool, alt: bool, shift: bool) -> Self {
         // Convert notcurses key code to string
         let key = if key_code < 128 {
-            // ASCII character
-            (key_code as u8 as char).to_string()
+            // ASCII character - handle special cases first
+            match key_code {
+                10 | 13 => "Enter".to_string(),  // Line feed or carriage return
+                27 => "Escape".to_string(),      // ESC
+                9 => "Tab".to_string(),          // Tab
+                127 => "Backspace".to_string(),  // DEL (often used as backspace)
+                _ => (key_code as u8 as char).to_string(),
+            }
         } else {
             // Special key - map notcurses codes
             match key_code {
@@ -110,8 +116,6 @@ impl KeyInput {
                 // Page Up/Down
                 0x153 => "PageUp".to_string(),
                 0x152 => "PageDown".to_string(),
-                // Tab
-                0x9 => "Tab".to_string(),
                 _ => format!("Unknown({})", key_code),
             }
         };
