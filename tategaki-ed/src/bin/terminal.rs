@@ -224,20 +224,49 @@ impl TerminalEditor {
 
             // Navigation
             EditorCommand::MoveUp => {
-                self.cursor.row = self.cursor.row.saturating_sub(1);
+                if self.config.text_direction == TextDirection::VerticalTopToBottom {
+                    // In vertical text, up/down moves within a column (changes column index)
+                    self.cursor.column = self.cursor.column.saturating_sub(1);
+                } else {
+                    // In horizontal text, up/down moves between lines (changes row)
+                    self.cursor.row = self.cursor.row.saturating_sub(1);
+                }
             }
             EditorCommand::MoveDown => {
-                if self.cursor.row < self.lines.len().saturating_sub(1) {
-                    self.cursor.row += 1;
+                if self.config.text_direction == TextDirection::VerticalTopToBottom {
+                    // In vertical text, up/down moves within a column
+                    let line_len = self.current_line().chars().count();
+                    if self.cursor.column < line_len {
+                        self.cursor.column += 1;
+                    }
+                } else {
+                    // In horizontal text, up/down moves between lines
+                    if self.cursor.row < self.lines.len().saturating_sub(1) {
+                        self.cursor.row += 1;
+                    }
                 }
             }
             EditorCommand::MoveLeft => {
-                self.cursor.column = self.cursor.column.saturating_sub(1);
+                if self.config.text_direction == TextDirection::VerticalTopToBottom {
+                    // In vertical text, left/right moves between columns (changes row)
+                    if self.cursor.row < self.lines.len().saturating_sub(1) {
+                        self.cursor.row += 1;
+                    }
+                } else {
+                    // In horizontal text, left/right moves within a line (changes column)
+                    self.cursor.column = self.cursor.column.saturating_sub(1);
+                }
             }
             EditorCommand::MoveRight => {
-                let line_len = self.current_line().chars().count();
-                if self.cursor.column < line_len {
-                    self.cursor.column += 1;
+                if self.config.text_direction == TextDirection::VerticalTopToBottom {
+                    // In vertical text, left/right moves between columns (changes row)
+                    self.cursor.row = self.cursor.row.saturating_sub(1);
+                } else {
+                    // In horizontal text, left/right moves within a line (changes column)
+                    let line_len = self.current_line().chars().count();
+                    if self.cursor.column < line_len {
+                        self.cursor.column += 1;
+                    }
                 }
             }
             EditorCommand::MoveToLineStart => {
