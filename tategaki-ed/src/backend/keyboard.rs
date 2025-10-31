@@ -108,6 +108,7 @@ impl KeyInput {
                 // Function keys
                 0x109 => "Escape".to_string(),
                 0x10A => "Enter".to_string(),
+                1115121 => "Enter".to_string(),  // NCKEY_ENTER on some systems
                 0x107 => "Backspace".to_string(),
                 0x14A => "Delete".to_string(),
                 // Home/End

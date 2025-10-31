@@ -562,11 +562,16 @@ impl TerminalEditor {
                 let key_input = KeyInput::from_notcurses_key(key, ctrl, alt, shift);
 
                 if self.debug {
-                    self.message = format!("Key: {:?}", key_input);
+                    self.message = format!("Key: {:?} (raw: {})", key_input, key);
                 }
 
                 // Process key through keyboard handler
-                let command = self.keyboard.process_key(key_input)?;
+                let command = self.keyboard.process_key(key_input.clone())?;
+
+                if self.debug {
+                    self.message = format!("Mode: {:?}, Key: {:?}, Cmd: {:?}",
+                        self.keyboard.mode(), key_input, command);
+                }
 
                 // Execute mode changes through keyboard handler
                 self.keyboard.execute_command(&command)?;
@@ -595,8 +600,8 @@ impl TerminalEditor {
             self.render()?;
             self.handle_input()?;
 
-            // Clear message after displaying
-            if !self.message.is_empty() {
+            // Clear message after displaying (but keep debug messages)
+            if !self.message.is_empty() && !self.debug {
                 // Keep message for a few frames
                 static mut MESSAGE_COUNTER: u32 = 0;
                 unsafe {
