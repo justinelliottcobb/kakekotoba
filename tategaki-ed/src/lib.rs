@@ -18,6 +18,7 @@ pub mod japanese;
 pub mod programming;
 pub mod formats;
 pub mod backend;
+pub mod ui;
 
 // Conditional interface modules
 #[cfg(feature = "gpui")]
@@ -218,6 +219,90 @@ pub struct ProgrammingFeatures {
     pub kakekotoba_integration: bool,
 }
 
+/// Floating command bar configuration
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FloatingBarConfig {
+    /// Enable floating command bar
+    pub enabled: bool,
+    /// Position of the floating bar
+    pub position: FloatingPosition,
+    /// Visual styling
+    pub style: FloatingBarStyle,
+    /// Auto-hide after command execution
+    pub auto_hide: bool,
+    /// Show command history
+    pub show_history: bool,
+    /// Show suggestions
+    pub show_suggestions: bool,
+}
+
+/// Floating bar position options
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum FloatingPosition {
+    /// Centered in viewport
+    Center,
+    /// Top-center, offset by Y rows from top
+    TopCenter { offset_y: usize },
+    /// Bottom-center, offset by Y rows from bottom
+    BottomCenter { offset_y: usize },
+    /// Custom absolute position (x, y) in terminal cells
+    Absolute { x: usize, y: usize },
+    /// Relative to cursor position
+    NearCursor { offset_x: isize, offset_y: isize },
+    /// Custom anchoring with offsets
+    Anchored {
+        horizontal: HorizontalAnchor,
+        vertical: VerticalAnchor,
+        offset_x: isize,
+        offset_y: isize,
+    },
+}
+
+/// Horizontal anchor point
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum HorizontalAnchor {
+    Left,
+    Center,
+    Right,
+}
+
+/// Vertical anchor point
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum VerticalAnchor {
+    Top,
+    Middle,
+    Bottom,
+}
+
+/// Floating bar visual styling
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FloatingBarStyle {
+    /// Background color (hex format)
+    pub background: String,
+    /// Background opacity (0-255)
+    pub background_alpha: u8,
+    /// Border style
+    pub border: BorderStyle,
+    /// Padding (left, right, top, bottom)
+    pub padding: (usize, usize, usize, usize),
+    /// Minimum width in characters
+    pub min_width: usize,
+    /// Maximum width in characters (None = no limit)
+    pub max_width: Option<usize>,
+    /// Draw shadow
+    pub shadow: bool,
+}
+
+/// Border style options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum BorderStyle {
+    None,
+    Single,
+    Double,
+    Rounded,
+    Thick,
+}
+
 /// UI layout configuration
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UILayout {
@@ -229,6 +314,8 @@ pub struct UILayout {
     pub show_line_numbers: bool,
     /// Show column indicator
     pub show_column_indicator: bool,
+    /// Floating command bar configuration
+    pub floating_command_bar: FloatingBarConfig,
 }
 
 /// Command line placement options
@@ -377,6 +464,34 @@ impl Default for UILayout {
             status_line_placement: StatusLinePlacement::Bottom,
             show_line_numbers: false,
             show_column_indicator: false,
+            floating_command_bar: FloatingBarConfig::default(),
+        }
+    }
+}
+
+impl Default for FloatingBarConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            position: FloatingPosition::Center,
+            style: FloatingBarStyle::default(),
+            auto_hide: true,
+            show_history: true,
+            show_suggestions: true,
+        }
+    }
+}
+
+impl Default for FloatingBarStyle {
+    fn default() -> Self {
+        Self {
+            background: "#202020".to_string(),
+            background_alpha: 240, // Semi-transparent
+            border: BorderStyle::Rounded,
+            padding: (2, 2, 1, 1),
+            min_width: 40,
+            max_width: Some(80),
+            shadow: true,
         }
     }
 }
