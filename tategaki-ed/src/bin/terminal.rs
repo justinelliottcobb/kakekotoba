@@ -418,6 +418,21 @@ impl TerminalEditor {
         match self.config.text_direction {
             TextDirection::VerticalTopToBottom => {
                 // Render columns right-to-left (pass logical column number, backend will convert)
+                //
+                // DESIGN CHOICE: Vertical text overflow behavior
+                // ================================================
+                // Vertical text columns are intentionally allowed to extend beyond the visible
+                // viewport area and flow below the status line. This creates a more authentic
+                // vertical reading experience where text naturally "plunges" downward.
+                //
+                // The viewport determines WHICH columns are visible (via start_line..end_line),
+                // but does NOT clip individual column height. This means:
+                // - Long columns will extend past content_rows
+                // - Text can render over/under the status line
+                // - This behavior should be preserved even when pagination is added
+                //
+                // Future pagination features should scroll columns horizontally (right-to-left),
+                // not clip column height vertically.
                 for (idx, line_idx) in (start_line..end_line).enumerate() {
                     let line = &self.lines[line_idx];
                     // Pass logical column number (idx) and row offset
@@ -500,9 +515,31 @@ impl TerminalEditor {
         Ok(())
     }
 
+    /// Calculate status line row based on configuration
+    fn get_status_line_row(&self) -> u32 {
+        let (_cols, rows) = self.backend.viewport_size();
+        match self.config.ui_layout.status_line_placement {
+            tategaki_ed::StatusLinePlacement::Top => 0,
+            tategaki_ed::StatusLinePlacement::Bottom => rows.saturating_sub(2),
+            tategaki_ed::StatusLinePlacement::OffsetFromTop(offset) => offset.min((rows - 1) as usize) as u32,
+            tategaki_ed::StatusLinePlacement::OffsetFromBottom(offset) => rows.saturating_sub(2 + offset as u32),
+        }
+    }
+
+    /// Calculate command line row based on configuration
+    fn get_command_line_row(&self) -> u32 {
+        let (_cols, rows) = self.backend.viewport_size();
+        match self.config.ui_layout.command_line_placement {
+            tategaki_ed::CommandLinePlacement::Top => 0,
+            tategaki_ed::CommandLinePlacement::Bottom => rows.saturating_sub(1),
+            tategaki_ed::CommandLinePlacement::OffsetFromTop(offset) => offset.min((rows - 1) as usize) as u32,
+            tategaki_ed::CommandLinePlacement::OffsetFromBottom(offset) => rows.saturating_sub(1 + offset as u32),
+        }
+    }
+
     fn render_status_bar(&mut self) -> Result<()> {
-        let (cols, rows) = self.backend.viewport_size();
-        let status_row = rows.saturating_sub(2);
+        let (cols, _rows) = self.backend.viewport_size();
+        let status_row = self.get_status_line_row();
 
         // Status bar background
         let status_bg = Color::new(40, 40, 40, 255);
@@ -550,9 +587,9 @@ impl TerminalEditor {
             TextDirection::HorizontalLeftToRight,
         )?;
 
-        // Render message on second status line
-        let msg_row = rows.saturating_sub(1);
-        if !self.message.is_empty() {
+        // Render message on command line (if not in command mode)
+        if !self.message.is_empty() && self.keyboard.mode() != EditorMode::Command {
+            let msg_row = self.get_command_line_row();
             self.backend.render_text(
                 &self.message,
                 (0.0, msg_row as f32),
@@ -565,8 +602,7 @@ impl TerminalEditor {
     }
 
     fn render_command_line(&mut self) -> Result<()> {
-        let (cols, rows) = self.backend.viewport_size();
-        let cmd_row = rows.saturating_sub(1);
+        let cmd_row = self.get_command_line_row();
 
         let cmd_text = format!(":{}", self.keyboard.command_line());
         let cmd_style = TextStyle {

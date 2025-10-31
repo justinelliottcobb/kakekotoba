@@ -244,7 +244,13 @@ impl SpatialFormatHandler {
 
         // Add custom properties
         for (key, value) in spatial.properties {
-            properties.insert(key, value.to_string());
+            // If it's a JSON string, extract the actual string value
+            // Otherwise, serialize the JSON value
+            let string_value = match value {
+                serde_json::Value::String(s) => s,
+                other => other.to_string(),
+            };
+            properties.insert(key, string_value);
         }
 
         let created_at = spatial.created_at
@@ -511,7 +517,7 @@ mod tests {
         let annotation = handler.create_annotation(
             SpatialRange {
                 start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
-                end: SpatialPosition { row: 0, column: 5, byte_offset: 0 },
+                end: SpatialPosition { row: 0, column: 5, byte_offset: 5 },
             },
             AnnotationType::Comment,
             "Test comment".to_string(),
@@ -522,7 +528,7 @@ mod tests {
         assert_eq!(spatial_meta.annotations.len(), 1);
 
         // Find annotations at position
-        let position = SpatialPosition { row: 0, column: 2, byte_offset: 0 };
+        let position = SpatialPosition { row: 0, column: 2, byte_offset: 2 };
         let found = handler.find_annotations_at(&spatial_meta, position);
         assert_eq!(found.len(), 1);
         

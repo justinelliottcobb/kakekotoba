@@ -84,10 +84,8 @@ impl MarkdownHandler {
             cleaned_content.push('\n');
         }
 
-        // Remove trailing newline
-        if cleaned_content.ends_with('\n') {
-            cleaned_content.pop();
-        }
+        // Remove leading and trailing newlines
+        let cleaned_content = cleaned_content.trim_start_matches('\n').trim_end_matches('\n').to_string();
 
         (cleaned_content, metadata)
     }

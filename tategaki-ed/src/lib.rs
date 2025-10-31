@@ -88,6 +88,8 @@ pub struct EditorConfig {
     pub keybindings: KeyBindings,
     /// Programming language features
     pub programming_features: ProgrammingFeatures,
+    /// UI layout configuration
+    pub ui_layout: UILayout,
 }
 
 /// Font configuration for vertical text
@@ -216,6 +218,45 @@ pub struct ProgrammingFeatures {
     pub kakekotoba_integration: bool,
 }
 
+/// UI layout configuration
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UILayout {
+    /// Command line vertical placement
+    pub command_line_placement: CommandLinePlacement,
+    /// Status line vertical placement
+    pub status_line_placement: StatusLinePlacement,
+    /// Show line numbers
+    pub show_line_numbers: bool,
+    /// Show column indicator
+    pub show_column_indicator: bool,
+}
+
+/// Command line placement options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CommandLinePlacement {
+    /// At the top of the viewport (row 0)
+    Top,
+    /// At the bottom of the viewport (last row)
+    Bottom,
+    /// At a specific row offset from top
+    OffsetFromTop(usize),
+    /// At a specific row offset from bottom
+    OffsetFromBottom(usize),
+}
+
+/// Status line placement options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum StatusLinePlacement {
+    /// At the top of the viewport (row 0)
+    Top,
+    /// At the bottom of the viewport (second to last row)
+    Bottom,
+    /// At a specific row offset from top
+    OffsetFromTop(usize),
+    /// At a specific row offset from bottom
+    OffsetFromBottom(usize),
+}
+
 impl Default for EditorConfig {
     fn default() -> Self {
         Self {
@@ -225,6 +266,7 @@ impl Default for EditorConfig {
             color_scheme: ColorScheme::default(),
             keybindings: KeyBindings::default(),
             programming_features: ProgrammingFeatures::default(),
+            ui_layout: UILayout::default(),
         }
     }
 }
@@ -324,6 +366,17 @@ impl Default for ProgrammingFeatures {
             bracket_matching: true,
             error_indicators: true,
             kakekotoba_integration: true,
+        }
+    }
+}
+
+impl Default for UILayout {
+    fn default() -> Self {
+        Self {
+            command_line_placement: CommandLinePlacement::Bottom,
+            status_line_placement: StatusLinePlacement::Bottom,
+            show_line_numbers: false,
+            show_column_indicator: false,
         }
     }
 }
