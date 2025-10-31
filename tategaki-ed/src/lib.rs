@@ -31,6 +31,7 @@ pub use text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
 pub use spatial::{SpatialPosition, CoordinateSystem};
 pub use japanese::{JapaneseInputMethod, CharacterHandler};
 pub use backend::{RenderBackend, BackendType, BackendSelector, Color, Rect, TextStyle};
+pub use formats::{FileManager, FileFormat, FileMetadata, FileHandler};
 
 /// Error types for the tategaki editor
 #[derive(Debug, thiserror::Error)]

@@ -102,19 +102,19 @@ impl Default for FileMetadata {
 }
 
 /// File operations trait for different formats
-pub trait FileHandler {
+pub trait FileHandler: Send + Sync {
     /// Load text buffer from file
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)>;
-    
+
     /// Save text buffer to file
     fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()>;
-    
+
     /// Check if format supports spatial metadata
     fn supports_spatial_metadata(&self) -> bool;
-    
+
     /// Get supported file extensions
     fn file_extensions(&self) -> Vec<&'static str>;
-    
+
     /// Validate file content before loading
     fn validate(&self, path: &Path) -> Result<()>;
 }
@@ -205,6 +205,15 @@ impl FileManager {
             handler.file_extensions()
         } else {
             Vec::new()
+        }
+    }
+
+    /// Check if format supports spatial metadata
+    pub fn supports_spatial_metadata(&self, format: FileFormat) -> bool {
+        if let Some(handler) = self.handlers.get(&format) {
+            handler.supports_spatial_metadata()
+        } else {
+            false
         }
     }
 

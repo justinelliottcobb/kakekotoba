@@ -55,7 +55,7 @@ fn test_spatial_format() -> tategaki_ed::Result<()> {
     let mut metadata = FileMetadata {
         format: FileFormat::Spatial,
         text_direction: TextDirection::VerticalTopToBottom,
-        cursor_position: Some(SpatialPosition { row: 1, column: 5 }),
+        cursor_position: Some(SpatialPosition { row: 1, column: 5, byte_offset: 0 }),
         encoding: "UTF-8".to_string(),
         ..Default::default()
     };
@@ -63,8 +63,8 @@ fn test_spatial_format() -> tategaki_ed::Result<()> {
     // Add some selections as JSON in properties
     let selections = vec![
         SpatialRange {
-            start: SpatialPosition { row: 0, column: 0 },
-            end: SpatialPosition { row: 0, column: 4 },
+            start: SpatialPosition { row: 0, column: 0, byte_offset: 0 },
+            end: SpatialPosition { row: 0, column: 4, byte_offset: 0 },
         }
     ];
     let selections_json = serde_json::to_string(&selections).unwrap();
@@ -81,7 +81,7 @@ fn test_spatial_format() -> tategaki_ed::Result<()> {
     assert_eq!(loaded_buffer.as_text(), content);
     assert_eq!(loaded_metadata.format, FileFormat::Spatial);
     assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-    assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 5 }));
+    assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 5, byte_offset: 0 }));
     assert!(loaded_metadata.properties.contains_key("selections"));
     assert_eq!(loaded_metadata.properties.get("test_property"), Some(&"test_value".to_string()));
 
@@ -124,7 +124,7 @@ The end."#;
     let mut metadata = FileMetadata {
         format: FileFormat::Markdown,
         text_direction: TextDirection::VerticalTopToBottom,
-        cursor_position: Some(SpatialPosition { row: 5, column: 10 }),
+        cursor_position: Some(SpatialPosition { row: 5, column: 10, byte_offset: 0 }),
         encoding: "UTF-8".to_string(),
         ..Default::default()
     };
@@ -138,7 +138,7 @@ The end."#;
     assert_eq!(loaded_buffer.as_text(), content);
     assert_eq!(loaded_metadata.format, FileFormat::Markdown);
     assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-    assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 5, column: 10 }));
+    assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 5, column: 10, byte_offset: 0 }));
     assert_eq!(loaded_metadata.properties.get("md_author"), Some(&"Test Author".to_string()));
 
     // Verify frontmatter was added
@@ -165,7 +165,7 @@ fn test_json_format() -> tategaki_ed::Result<()> {
     let mut metadata = FileMetadata {
         format: FileFormat::Json,
         text_direction: TextDirection::VerticalTopToBottom,
-        cursor_position: Some(SpatialPosition { row: 2, column: 7 }),
+        cursor_position: Some(SpatialPosition { row: 2, column: 7, byte_offset: 0 }),
         encoding: "UTF-8".to_string(),
         ..Default::default()
     };
@@ -180,7 +180,7 @@ fn test_json_format() -> tategaki_ed::Result<()> {
     assert_eq!(loaded_buffer.as_text(), content);
     assert_eq!(loaded_metadata.format, FileFormat::Json);
     assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-    assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 2, column: 7 }));
+    assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 2, column: 7, byte_offset: 0 }));
     assert_eq!(loaded_metadata.properties.get("title"), Some(&"Test Document".to_string()));
     assert_eq!(loaded_metadata.properties.get("author"), Some(&"Test Author".to_string()));
 

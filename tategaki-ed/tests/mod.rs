@@ -2,5 +2,6 @@
 
 pub mod integration;
 pub mod file_format_tests;
-pub mod ui_tests;
-pub mod spatial_tests;
+// TODO: Implement these test modules
+// pub mod ui_tests;
+// pub mod spatial_tests;

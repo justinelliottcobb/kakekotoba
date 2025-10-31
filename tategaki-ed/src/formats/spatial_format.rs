@@ -425,11 +425,11 @@ mod tests {
         };
         
         let annotation = handler.create_annotation(
-            range,
+            range.clone(),
             AnnotationType::Comment,
             "Test comment".to_string(),
         );
-        
+
         assert_eq!(annotation.range, range);
         assert!(matches!(annotation.annotation_type, AnnotationType::Comment));
         assert_eq!(annotation.content, "Test comment");
