@@ -2,4 +2,4 @@
 Vertical Text Test
 日本語の縦書き編集
 This is a test of vertical text editing
-垂直文本编辑测试
+垂直文本编辑测试d

@@ -94,7 +94,7 @@ impl KeyInput {
                 10 | 13 => "Enter".to_string(),  // Line feed or carriage return
                 27 => "Escape".to_string(),      // ESC
                 9 => "Tab".to_string(),          // Tab
-                127 => "Backspace".to_string(),  // DEL (often used as backspace)
+                8 | 127 => "Backspace".to_string(),  // BS or DEL (both used as backspace)
                 _ => (key_code as u8 as char).to_string(),
             }
         } else {
