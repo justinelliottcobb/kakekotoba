@@ -139,12 +139,22 @@ pub struct FloatingBarConfig {
 
 ## Keyboard Shortcuts
 
+### Opening/Closing
 - `:` - Open command input mode at floating position
-- `Ctrl+P` - Open command palette
-- `Ctrl+?` - Open quick help
 - `/` - Open search mode
 - `Esc` - Hide floating bar
-- `Ctrl+Shift+P` - Change floating bar position
+
+### Positioning (vim-style 'z' prefix)
+The 'z' prefix follows vim's fold command pattern and is mnemonic for "floating/hovering":
+
+- `zp` - Cycle through preset positions (Center → TopCenter → BottomCenter → NearCursor → Anchored → Center)
+- `zt` - Toggle floating bar visibility
+- `zk` - Move floating bar up
+- `zj` - Move floating bar down
+- `zh` - Move floating bar left
+- `zl` - Move floating bar right
+
+These commands work in Normal mode and maintain vim's philosophy of composable, memorable commands.
 
 ## Implementation Strategy
 

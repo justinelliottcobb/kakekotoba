@@ -306,6 +306,172 @@ impl FloatingCommandBar {
             self.config.style.background_alpha,
         ))
     }
+
+    /// Move floating bar up (decrease Y offset)
+    pub fn move_up(&mut self, step: isize) {
+        match &mut self.config.position {
+            FloatingPosition::TopCenter { offset_y } => {
+                *offset_y = offset_y.saturating_sub(step.max(0) as usize);
+            }
+            FloatingPosition::BottomCenter { offset_y } => {
+                *offset_y = offset_y.saturating_add(step.max(0) as usize);
+            }
+            FloatingPosition::Absolute { x: _, y } => {
+                *y = y.saturating_sub(step.max(0) as usize);
+            }
+            FloatingPosition::NearCursor { offset_x: _, offset_y } => {
+                *offset_y -= step;
+            }
+            FloatingPosition::Anchored { offset_y, .. } => {
+                *offset_y -= step;
+            }
+            FloatingPosition::Center => {
+                // Convert to TopCenter and then move
+                self.config.position = FloatingPosition::TopCenter { offset_y: 10 };
+            }
+        }
+    }
+
+    /// Move floating bar down (increase Y offset)
+    pub fn move_down(&mut self, step: isize) {
+        match &mut self.config.position {
+            FloatingPosition::TopCenter { offset_y } => {
+                *offset_y = offset_y.saturating_add(step.max(0) as usize);
+            }
+            FloatingPosition::BottomCenter { offset_y } => {
+                *offset_y = offset_y.saturating_sub(step.max(0) as usize);
+            }
+            FloatingPosition::Absolute { x: _, y } => {
+                *y = y.saturating_add(step.max(0) as usize);
+            }
+            FloatingPosition::NearCursor { offset_x: _, offset_y } => {
+                *offset_y += step;
+            }
+            FloatingPosition::Anchored { offset_y, .. } => {
+                *offset_y += step;
+            }
+            FloatingPosition::Center => {
+                // Convert to TopCenter and then move
+                self.config.position = FloatingPosition::TopCenter { offset_y: 15 };
+            }
+        }
+    }
+
+    /// Move floating bar left (decrease X offset)
+    pub fn move_left(&mut self, step: isize) {
+        match &mut self.config.position {
+            FloatingPosition::Absolute { x, y: _ } => {
+                *x = x.saturating_sub(step.max(0) as usize);
+            }
+            FloatingPosition::NearCursor { offset_x, offset_y: _ } => {
+                *offset_x -= step;
+            }
+            FloatingPosition::Anchored { offset_x, .. } => {
+                *offset_x -= step;
+            }
+            FloatingPosition::Center => {
+                // Convert to Anchored and then move
+                self.config.position = FloatingPosition::Anchored {
+                    horizontal: HorizontalAnchor::Center,
+                    vertical: VerticalAnchor::Middle,
+                    offset_x: -step,
+                    offset_y: 0,
+                };
+            }
+            _ => {
+                // For TopCenter/BottomCenter, convert to Anchored
+                let (vert_anchor, offset_y) = match &self.config.position {
+                    FloatingPosition::TopCenter { offset_y } => (VerticalAnchor::Top, *offset_y as isize),
+                    FloatingPosition::BottomCenter { offset_y } => (VerticalAnchor::Bottom, *offset_y as isize),
+                    _ => (VerticalAnchor::Middle, 0),
+                };
+                self.config.position = FloatingPosition::Anchored {
+                    horizontal: HorizontalAnchor::Center,
+                    vertical: vert_anchor,
+                    offset_x: -step,
+                    offset_y,
+                };
+            }
+        }
+    }
+
+    /// Move floating bar right (increase X offset)
+    pub fn move_right(&mut self, step: isize) {
+        match &mut self.config.position {
+            FloatingPosition::Absolute { x, y: _ } => {
+                *x = x.saturating_add(step.max(0) as usize);
+            }
+            FloatingPosition::NearCursor { offset_x, offset_y: _ } => {
+                *offset_x += step;
+            }
+            FloatingPosition::Anchored { offset_x, .. } => {
+                *offset_x += step;
+            }
+            FloatingPosition::Center => {
+                // Convert to Anchored and then move
+                self.config.position = FloatingPosition::Anchored {
+                    horizontal: HorizontalAnchor::Center,
+                    vertical: VerticalAnchor::Middle,
+                    offset_x: step,
+                    offset_y: 0,
+                };
+            }
+            _ => {
+                // For TopCenter/BottomCenter, convert to Anchored
+                let (vert_anchor, offset_y) = match &self.config.position {
+                    FloatingPosition::TopCenter { offset_y } => (VerticalAnchor::Top, *offset_y as isize),
+                    FloatingPosition::BottomCenter { offset_y } => (VerticalAnchor::Bottom, *offset_y as isize),
+                    _ => (VerticalAnchor::Middle, 0),
+                };
+                self.config.position = FloatingPosition::Anchored {
+                    horizontal: HorizontalAnchor::Center,
+                    vertical: vert_anchor,
+                    offset_x: step,
+                    offset_y,
+                };
+            }
+        }
+    }
+
+    /// Cycle through preset positions
+    pub fn cycle_position(&mut self) {
+        self.config.position = match &self.config.position {
+            FloatingPosition::Center => FloatingPosition::TopCenter { offset_y: 2 },
+            FloatingPosition::TopCenter { .. } => FloatingPosition::BottomCenter { offset_y: 2 },
+            FloatingPosition::BottomCenter { .. } => FloatingPosition::NearCursor { offset_x: 3, offset_y: -2 },
+            FloatingPosition::NearCursor { .. } => FloatingPosition::Anchored {
+                horizontal: HorizontalAnchor::Right,
+                vertical: VerticalAnchor::Top,
+                offset_x: -2,
+                offset_y: 2,
+            },
+            FloatingPosition::Anchored { .. } => FloatingPosition::Center,
+            FloatingPosition::Absolute { .. } => FloatingPosition::Center,
+        };
+    }
+
+    /// Toggle visibility
+    pub fn toggle(&mut self) {
+        if self.visible {
+            self.hide();
+        } else {
+            self.show(CommandBarMode::CommandInput);
+        }
+    }
+
+    /// Get current position description for display
+    pub fn position_description(&self) -> String {
+        match &self.config.position {
+            FloatingPosition::Center => "Center".to_string(),
+            FloatingPosition::TopCenter { offset_y } => format!("Top (offset: {})", offset_y),
+            FloatingPosition::BottomCenter { offset_y } => format!("Bottom (offset: {})", offset_y),
+            FloatingPosition::Absolute { x, y } => format!("Absolute ({}, {})", x, y),
+            FloatingPosition::NearCursor { offset_x, offset_y } => format!("Near Cursor ({:+}, {:+})", offset_x, offset_y),
+            FloatingPosition::Anchored { horizontal, vertical, offset_x, offset_y } => {
+                format!("{:?}-{:?} ({:+}, {:+})", horizontal, vertical, offset_x, offset_y)
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -383,5 +549,107 @@ mod tests {
         let bar = FloatingCommandBar::new(config);
         let chars = bar.get_border_chars().unwrap();
         assert_eq!(chars[0], '┌'); // Top-left
+    }
+
+    #[test]
+    fn test_move_up_down() {
+        let mut config = FloatingBarConfig::default();
+        config.position = FloatingPosition::TopCenter { offset_y: 10 };
+        let mut bar = FloatingCommandBar::new(config);
+
+        // Move down increases offset for TopCenter
+        bar.move_down(5);
+        match bar.config.position {
+            FloatingPosition::TopCenter { offset_y } => assert_eq!(offset_y, 15),
+            _ => panic!("Position should still be TopCenter"),
+        }
+
+        // Move up decreases offset
+        bar.move_up(3);
+        match bar.config.position {
+            FloatingPosition::TopCenter { offset_y } => assert_eq!(offset_y, 12),
+            _ => panic!("Position should still be TopCenter"),
+        }
+    }
+
+    #[test]
+    fn test_move_left_right() {
+        let mut config = FloatingBarConfig::default();
+        config.position = FloatingPosition::Absolute { x: 50, y: 10 };
+        let mut bar = FloatingCommandBar::new(config);
+
+        // Move right increases X
+        bar.move_right(10);
+        match bar.config.position {
+            FloatingPosition::Absolute { x, y: _ } => assert_eq!(x, 60),
+            _ => panic!("Position should still be Absolute"),
+        }
+
+        // Move left decreases X
+        bar.move_left(5);
+        match bar.config.position {
+            FloatingPosition::Absolute { x, y: _ } => assert_eq!(x, 55),
+            _ => panic!("Position should still be Absolute"),
+        }
+    }
+
+    #[test]
+    fn test_cycle_position() {
+        let config = FloatingBarConfig::default();
+        let mut bar = FloatingCommandBar::new(config);
+
+        // Start at Center
+        assert!(matches!(bar.config.position, FloatingPosition::Center));
+
+        // Cycle to TopCenter
+        bar.cycle_position();
+        assert!(matches!(bar.config.position, FloatingPosition::TopCenter { .. }));
+
+        // Cycle to BottomCenter
+        bar.cycle_position();
+        assert!(matches!(bar.config.position, FloatingPosition::BottomCenter { .. }));
+
+        // Cycle to NearCursor
+        bar.cycle_position();
+        assert!(matches!(bar.config.position, FloatingPosition::NearCursor { .. }));
+
+        // Cycle to Anchored
+        bar.cycle_position();
+        assert!(matches!(bar.config.position, FloatingPosition::Anchored { .. }));
+
+        // Cycle back to Center
+        bar.cycle_position();
+        assert!(matches!(bar.config.position, FloatingPosition::Center));
+    }
+
+    #[test]
+    fn test_toggle() {
+        let config = FloatingBarConfig::default();
+        let mut bar = FloatingCommandBar::new(config);
+
+        assert!(!bar.is_visible());
+
+        bar.toggle();
+        assert!(bar.is_visible());
+
+        bar.toggle();
+        assert!(!bar.is_visible());
+    }
+
+    #[test]
+    fn test_position_description() {
+        let mut config = FloatingBarConfig::default();
+
+        config.position = FloatingPosition::Center;
+        let bar = FloatingCommandBar::new(config.clone());
+        assert_eq!(bar.position_description(), "Center");
+
+        config.position = FloatingPosition::TopCenter { offset_y: 5 };
+        let bar = FloatingCommandBar::new(config.clone());
+        assert_eq!(bar.position_description(), "Top (offset: 5)");
+
+        config.position = FloatingPosition::NearCursor { offset_x: 3, offset_y: -2 };
+        let bar = FloatingCommandBar::new(config);
+        assert_eq!(bar.position_description(), "Near Cursor (+3, -2)");
     }
 }

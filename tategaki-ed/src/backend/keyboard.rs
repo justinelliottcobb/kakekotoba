@@ -179,6 +179,14 @@ pub enum EditorCommand {
     Quit,
     QuitForce,
 
+    // Floating command bar positioning
+    MoveFloatingBarUp,
+    MoveFloatingBarDown,
+    MoveFloatingBarLeft,
+    MoveFloatingBarRight,
+    CycleFloatingBarPosition,
+    ToggleFloatingBar,
+
     // Other
     NoOp,
 }
@@ -304,6 +312,16 @@ impl KeyboardHandler {
         // Undo/Redo
         normal_bindings.insert("u".to_string(), EditorCommand::Undo);
         normal_bindings.insert("Ctrl+r".to_string(), EditorCommand::Redo);
+
+        // Floating command bar positioning
+        // Use 'z' prefix (like vim folds) for floating bar commands
+        // z is mnemonic for "floating/hovering" and follows vim's fold pattern
+        normal_bindings.insert("zp".to_string(), EditorCommand::CycleFloatingBarPosition);
+        normal_bindings.insert("zt".to_string(), EditorCommand::ToggleFloatingBar);
+        normal_bindings.insert("zk".to_string(), EditorCommand::MoveFloatingBarUp);
+        normal_bindings.insert("zj".to_string(), EditorCommand::MoveFloatingBarDown);
+        normal_bindings.insert("zh".to_string(), EditorCommand::MoveFloatingBarLeft);
+        normal_bindings.insert("zl".to_string(), EditorCommand::MoveFloatingBarRight);
 
         self.bindings.insert(EditorMode::Normal, normal_bindings);
 
