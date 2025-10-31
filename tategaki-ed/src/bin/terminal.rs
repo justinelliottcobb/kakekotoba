@@ -388,28 +388,32 @@ impl TerminalEditor {
 
         match self.config.text_direction {
             TextDirection::VerticalTopToBottom => {
-                // Render columns right-to-left
+                // Render columns right-to-left (pass logical column number, backend will convert)
                 for (idx, line_idx) in (start_line..end_line).enumerate() {
                     let line = &self.lines[line_idx];
-                    let x = (cols as f32 - (idx as f32 * 2.0) - 2.0).max(0.0);
+                    // Pass logical column number (idx) and row offset
                     self.backend.render_text(
                         line,
-                        (x, 1.0),
+                        (idx as f32, 1.0),  // Backend will position this from the right
                         &style,
                         self.config.text_direction,
                     )?;
                 }
 
-                // Render cursor (convert logical to visual position for vertical text)
+                // Render cursor (convert logical to screen position)
                 let col_offset = self.cursor.row.saturating_sub(start_line);
-                let cursor_x = (cols as f32 - (col_offset as f32 * 2.0) - 2.0).max(0.0);
-                let cursor_y = self.cursor.column as f32 + 1.0;
+                let logical_col = col_offset as f32;  // Logical column from the right
+                let logical_row = self.cursor.column as f32;
+
+                // Convert to screen coordinates: columns go right-to-left
+                let screen_col = ((cols as f32 - logical_col * 2.0 - 2.0).max(0.0)) as usize;
+                let screen_row = (logical_row + 1.0) as usize;
 
                 let cursor_color = Color::from_hex(&self.config.color_scheme.cursor)?;
                 let cursor_info = CursorInfo {
                     position: SpatialPosition {
-                        column: cursor_x as usize,
-                        row: cursor_y as usize,
+                        column: screen_col,
+                        row: screen_row,
                         byte_offset: 0,
                     },
                     color: cursor_color,
