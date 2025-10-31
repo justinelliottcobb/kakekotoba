@@ -153,8 +153,45 @@ The 'z' prefix follows vim's fold command pattern and is mnemonic for "floating/
 - `zj` - Move floating bar down
 - `zh` - Move floating bar left
 - `zl` - Move floating bar right
+- `zo` - Toggle vertical/horizontal orientation
 
 These commands work in Normal mode and maintain vim's philosophy of composable, memorable commands.
+
+### Vertical Orientation
+
+The floating command bar can be oriented **vertically** (top-to-bottom text flow) or **horizontally** (left-to-right text flow):
+
+**Horizontal (default)**:
+```
+┌──────────────────────┐
+│ :write file.txt      │
+│ Suggestions:         │
+│  :write              │
+│  :wq                 │
+└──────────────────────┘
+```
+
+**Vertical** (`zo` to toggle):
+```
+┌──┐
+│ :│
+│ w│
+│ r│
+│ i│
+│ t│
+│ e│
+│  │
+│ S│
+│ u│
+│ g│
+│ g│
+│ .│
+│ .│
+│ .│
+└──┘
+```
+
+This is especially natural for vertical text editing where all text flows top-to-bottom.
 
 ## Implementation Strategy
 

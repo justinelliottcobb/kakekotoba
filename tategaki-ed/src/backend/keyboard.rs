@@ -186,6 +186,7 @@ pub enum EditorCommand {
     MoveFloatingBarRight,
     CycleFloatingBarPosition,
     ToggleFloatingBar,
+    ToggleFloatingBarOrientation,
 
     // Other
     NoOp,
@@ -322,6 +323,7 @@ impl KeyboardHandler {
         normal_bindings.insert("zj".to_string(), EditorCommand::MoveFloatingBarDown);
         normal_bindings.insert("zh".to_string(), EditorCommand::MoveFloatingBarLeft);
         normal_bindings.insert("zl".to_string(), EditorCommand::MoveFloatingBarRight);
+        normal_bindings.insert("zo".to_string(), EditorCommand::ToggleFloatingBarOrientation);
 
         self.bindings.insert(EditorMode::Normal, normal_bindings);
 

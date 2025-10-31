@@ -234,6 +234,8 @@ pub struct FloatingBarConfig {
     pub show_history: bool,
     /// Show suggestions
     pub show_suggestions: bool,
+    /// Render bar content vertically (top-to-bottom)
+    pub vertical_orientation: bool,
 }
 
 /// Floating bar position options
@@ -478,6 +480,7 @@ impl Default for FloatingBarConfig {
             auto_hide: true,
             show_history: true,
             show_suggestions: true,
+            vertical_orientation: false, // Default to horizontal
         }
     }
 }

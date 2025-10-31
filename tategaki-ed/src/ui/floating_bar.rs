@@ -189,6 +189,13 @@ impl FloatingCommandBar {
 
         let height = self.calculate_content_height();
 
+        // Swap width/height for vertical orientation
+        let (width, height) = if self.config.vertical_orientation {
+            (height, width) // Swap for vertical layout
+        } else {
+            (width, height)
+        };
+
         let (x, y) = match &self.config.position {
             FloatingPosition::Center => {
                 let x = (viewport_width as usize).saturating_sub(width) / 2;
@@ -472,6 +479,30 @@ impl FloatingCommandBar {
             }
         }
     }
+
+    /// Toggle vertical orientation
+    pub fn toggle_vertical_orientation(&mut self) {
+        self.config.vertical_orientation = !self.config.vertical_orientation;
+    }
+
+    /// Check if vertically oriented
+    pub fn is_vertical(&self) -> bool {
+        self.config.vertical_orientation
+    }
+
+    /// Set vertical orientation
+    pub fn set_vertical_orientation(&mut self, vertical: bool) {
+        self.config.vertical_orientation = vertical;
+    }
+
+    /// Get orientation description
+    pub fn orientation_description(&self) -> &str {
+        if self.config.vertical_orientation {
+            "Vertical"
+        } else {
+            "Horizontal"
+        }
+    }
 }
 
 #[cfg(test)]
@@ -651,5 +682,58 @@ mod tests {
         config.position = FloatingPosition::NearCursor { offset_x: 3, offset_y: -2 };
         let bar = FloatingCommandBar::new(config);
         assert_eq!(bar.position_description(), "Near Cursor (+3, -2)");
+    }
+
+    #[test]
+    fn test_vertical_orientation() {
+        let config = FloatingBarConfig::default();
+        let mut bar = FloatingCommandBar::new(config);
+
+        // Default is horizontal
+        assert!(!bar.is_vertical());
+        assert_eq!(bar.orientation_description(), "Horizontal");
+
+        // Toggle to vertical
+        bar.toggle_vertical_orientation();
+        assert!(bar.is_vertical());
+        assert_eq!(bar.orientation_description(), "Vertical");
+
+        // Toggle back to horizontal
+        bar.toggle_vertical_orientation();
+        assert!(!bar.is_vertical());
+        assert_eq!(bar.orientation_description(), "Horizontal");
+    }
+
+    #[test]
+    fn test_set_vertical_orientation() {
+        let config = FloatingBarConfig::default();
+        let mut bar = FloatingCommandBar::new(config);
+
+        bar.set_vertical_orientation(true);
+        assert!(bar.is_vertical());
+
+        bar.set_vertical_orientation(false);
+        assert!(!bar.is_vertical());
+    }
+
+    #[test]
+    fn test_vertical_bounds_swap() {
+        let mut config = FloatingBarConfig::default();
+        config.vertical_orientation = false;
+        let bar_horiz = FloatingCommandBar::new(config.clone());
+
+        config.vertical_orientation = true;
+        let bar_vert = FloatingCommandBar::new(config);
+
+        let cursor = SpatialPosition { row: 10, column: 10, byte_offset: 0 };
+
+        // Get bounds for both orientations
+        let (x_h, y_h, w_h, h_h) = bar_horiz.calculate_bounds(80, 24, &cursor);
+        let (x_v, y_v, w_v, h_v) = bar_vert.calculate_bounds(80, 24, &cursor);
+
+        // Vertical should swap width and height
+        // Note: This is a basic check - the exact values will vary based on content
+        // The key is that vertical orientation affects the dimensions
+        assert!(w_v != w_h || h_v != h_h, "Vertical orientation should affect dimensions");
     }
 }
