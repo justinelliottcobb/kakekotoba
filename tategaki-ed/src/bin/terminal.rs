@@ -204,6 +204,18 @@ impl TerminalEditor {
     }
 
     fn execute_command(&mut self, command: &EditorCommand) -> Result<bool> {
+        // Debug: Log ALL commands to see if execute_command is being called
+        if matches!(command, EditorCommand::DeleteCharBackward | EditorCommand::DeleteChar) {
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/tategaki_execute_debug.log")
+            {
+                use std::io::Write;
+                let _ = writeln!(f, "execute_command called with: {:?}", command);
+            }
+        }
+
         match command {
             EditorCommand::NoOp => return Ok(false),
 
@@ -312,19 +324,50 @@ impl TerminalEditor {
                 let cursor_col = self.cursor.column;
                 let line = self.current_line_mut();
                 if cursor_col < line.chars().count() {
-                    let byte_pos = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
-                    line.remove(byte_pos);
-                    self.modified = true;
+                    // Find byte position and character length for proper UTF-8 handling
+                    let byte_pos: usize = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
+                    if let Some(ch) = line[byte_pos..].chars().next() {
+                        let char_len = ch.len_utf8();
+                        line.drain(byte_pos..byte_pos + char_len);
+                        self.modified = true;
+                    }
                 }
             }
             EditorCommand::DeleteCharBackward => {
+                // Debug logging
+                if let Ok(mut f) = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open("/tmp/tategaki_delete_debug.log")
+                {
+                    use std::io::Write;
+                    let _ = writeln!(f, "DeleteCharBackward: cursor.column={}, cursor.row={}, line='{}'",
+                        self.cursor.column, self.cursor.row, self.current_line());
+                }
+
                 if self.cursor.column > 0 {
+                    let old_line = self.current_line().to_string();
                     self.cursor.column -= 1;
                     let cursor_col = self.cursor.column;
                     let line = self.current_line_mut();
-                    let byte_pos = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
-                    line.remove(byte_pos);
-                    self.modified = true;
+                    // Find byte position and character length for proper UTF-8 handling
+                    let byte_pos: usize = line.chars().take(cursor_col).map(|c| c.len_utf8()).sum();
+                    if let Some(ch) = line[byte_pos..].chars().next() {
+                        let char_len = ch.len_utf8();
+                        line.drain(byte_pos..byte_pos + char_len);
+                        self.modified = true;
+
+                        // Debug logging
+                        if let Ok(mut f) = std::fs::OpenOptions::new()
+                            .create(true)
+                            .append(true)
+                            .open("/tmp/tategaki_delete_debug.log")
+                        {
+                            use std::io::Write;
+                            let _ = writeln!(f, "  Deleted char '{}' at byte_pos={}, old_line='{}', new_line='{}'",
+                                ch, byte_pos, old_line, self.current_line());
+                        }
+                    }
                 } else if self.cursor.row > 0 {
                     // Join with previous line
                     let current_line = self.lines.remove(self.cursor.row);
@@ -450,7 +493,8 @@ impl TerminalEditor {
                 let logical_row = self.cursor.column as f32;
 
                 // Convert to screen coordinates: columns go right-to-left
-                let screen_col = ((cols as f32 - logical_col * 2.0 - 2.0).max(0.0)) as usize;
+                // Must match calc_vertical_position formula: cols - logical_x * 2.0
+                let screen_col = (cols as f32 - logical_col * 2.0).max(0.0) as usize;
                 let screen_row = (logical_row + 1.0) as usize;
 
                 let cursor_color = Color::from_hex(&self.config.color_scheme.cursor)?;
@@ -630,12 +674,37 @@ impl TerminalEditor {
                 // Convert notcurses input to KeyInput
                 let key_input = KeyInput::from_notcurses_key(key, ctrl, alt, shift);
 
+                // Debug logging to file for backspace/delete keys
+                if key_input.key == "Backspace" || key_input.key == "Delete" {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/tategaki_backspace_debug.log")
+                    {
+                        use std::io::Write;
+                        let _ = writeln!(f, "Before process_key: KeyInput={:?}", key_input);
+                    }
+                }
+
                 if self.debug {
                     self.message = format!("Key: {:?} (raw: {})", key_input, key);
                 }
 
                 // Process key through keyboard handler
                 let command = self.keyboard.process_key(key_input.clone())?;
+
+                // Debug logging for command
+                if key_input.key == "Backspace" || key_input.key == "Delete" {
+                    if let Ok(mut f) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open("/tmp/tategaki_backspace_debug.log")
+                    {
+                        use std::io::Write;
+                        let _ = writeln!(f, "After process_key: Command={:?}, Mode={:?}",
+                            command, self.keyboard.mode());
+                    }
+                }
 
                 if self.debug {
                     self.message = format!("Mode: {:?}, Key: {:?}, Cmd: {:?}",

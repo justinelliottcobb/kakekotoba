@@ -8,6 +8,8 @@
 use libnotcurses_sys::c_api::*;
 #[cfg(feature = "notcurses")]
 use std::ptr;
+#[cfg(feature = "notcurses")]
+use std::ffi::CString;
 use crate::{Result, TategakiError};
 use crate::text_engine::TextDirection;
 use crate::spatial::SpatialPosition;
@@ -169,9 +171,10 @@ impl TerminalBackend {
         (logical_x as u32, logical_y as u32)
     }
 
-    /// Get input event from notcurses (non-blocking)
+    /// Get input event from notcurses
     ///
     /// Returns None if no input is available, or Some((keycode, ctrl, alt, shift))
+    /// Uses a short timeout to allow proper escape sequence capture
     #[cfg(feature = "notcurses")]
     pub fn get_input(&mut self) -> Option<(u32, bool, bool, bool)> {
         unsafe {
@@ -180,7 +183,9 @@ impl TerminalBackend {
             }
 
             let mut input: ncinput = std::mem::zeroed();
-            let ts = ffi::timespec { tv_sec: 0, tv_nsec: 0 };
+            // Use 10ms timeout to allow full escape sequences to be read
+            // Zero timeout can cause arrow keys to be split into ESC + letter
+            let ts = ffi::timespec { tv_sec: 0, tv_nsec: 10_000_000 };
             let result = notcurses_get(self.nc, &ts, &mut input);
 
             if result == 0 {
@@ -191,6 +196,17 @@ impl TerminalBackend {
             let ctrl = input.ctrl;
             let alt = input.alt;
             let shift = input.shift;
+
+            // Debug: Log key codes to help identify key mappings
+            if let Ok(mut f) = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open("/tmp/tategaki_keys.log")
+            {
+                use std::io::Write;
+                let _ = writeln!(f, "Key: id=0x{:X} ({}) ctrl={} alt={} shift={}",
+                    input.id, input.id, ctrl, alt, shift);
+            }
 
             Some((input.id, ctrl, alt, shift))
         }
@@ -206,9 +222,20 @@ impl RenderBackend for TerminalBackend {
     #[cfg(feature = "notcurses")]
     fn init(&mut self) -> Result<()> {
         unsafe {
-            // Initialize notcurses with default options
+            // Set locale to UTF-8 before initializing notcurses
+            // This is CRITICAL for proper Unicode/CJK character rendering
+            extern "C" {
+                fn setlocale(category: i32, locale: *const i8) -> *const i8;
+            }
+            const LC_ALL: i32 = 6;  // LC_ALL category
+            let locale = CString::new("").unwrap();  // Empty string means use environment
+            setlocale(LC_ALL, locale.as_ptr());
+
+            // Initialize notcurses with options to suppress banners
             let mut opts: notcurses_options = std::mem::zeroed();
-            opts.flags = 0; // Default flags
+            // NCOPTION_SUPPRESS_BANNERS = 0x0001
+            // NCOPTION_NO_ALTERNATE_SCREEN = 0x0010 (keep this OFF - we want alternate screen)
+            opts.flags = 0x0001u64; // Suppress startup banner
 
             self.nc = notcurses_init(&opts, ptr::null_mut());
             if self.nc.is_null() {

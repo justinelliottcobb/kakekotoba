@@ -153,42 +153,60 @@ The kakekotoba project includes **tategaki-ed** (縦書きエディタ), a speci
 ### Editor Features
 
 - **Vertical Japanese Text**: Native support for top-to-bottom, right-to-left tategaki layout
-- **Multiple Backends**: GPUI (GPU-accelerated), notcurses (terminal), and ratatui support
+- **Notcurses Terminal Backend**: High-performance terminal rendering with full Unicode support
 - **Vim-like Modal Editing**: Complete Normal/Insert/Visual/Command mode system
+- **Floating Command Bar**: Modern overlay UI with vertical orientation support
 - **Unicode Vertical Forms**: Automatic conversion of punctuation (、→︑ 。→︒)
 - **Direction-Aware Navigation**: hjkl navigation adapted for vertical text flow
-- **Bilingual UI**: Status bar and messages in both English and Japanese
+- **Multi-byte UTF-8 Support**: Proper handling of Japanese, Chinese, and other CJK characters
+
+### Important: Shell Compatibility
+
+⚠️ **The notcurses-based editor does NOT work in nushell.** Use bash or zsh instead.
+
+```bash
+# If you're in nushell, switch to bash first
+bash
+
+# Then run the editor
+export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+cargo run --no-default-features --features notcurses --bin tategaki-ed-terminal myfile.txt
+```
+
+See `tategaki-ed/NUSHELL_COMPATIBILITY.md` for details.
 
 ### Editor Binaries
 
 ```bash
-# Terminal editor with notcurses backend (requires notcurses ≥ 3.0.11)
-cargo build -p tategaki-ed --bin tategaki-ed-terminal --features notcurses
+# Terminal editor with notcurses backend (RECOMMENDED)
+export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+cargo build --no-default-features --features notcurses --bin tategaki-ed-terminal
 
-# Terminal editor with ratatui backend
-cargo build -p tategaki-ed --bin tategaki-ed-tui --features ratatui
-
-# GUI editor with GPUI
-cargo build -p tategaki-ed --bin tategaki-ed-gui --features gpui
+# Note: Other backends (ratatui, GPUI) are not currently functional
 ```
 
 ### Quick Start
 
 ```bash
-# Run terminal editor
-./target/debug/tategaki-ed-terminal myfile.kake
+# Run terminal editor (from bash or zsh, NOT nushell!)
+export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+cargo run --no-default-features --features notcurses --bin tategaki-ed-terminal myfile.txt
 
 # Vim keybindings
-# Normal mode: hjkl (navigate), i (insert), dd (delete line), yy (yank)
-# Command mode: :w (save), :q (quit), :wq (save & quit)
+# Normal mode: hjkl (navigate), i (insert), x (delete char), dd (delete line)
+# Insert mode: Type text, Backspace/Delete work, Esc to exit
+# Command mode: :w (save), :q (quit), :wq (save & quit), :q! (force quit)
 # Global: Ctrl+S (save), Ctrl+Q (quit)
+# Floating bar: zp (cycle position), zo (toggle orientation), zk/zj/zh/zl (move)
 ```
 
 ### Documentation
 
-- **NOTCURSES_BACKEND.md**: Detailed backend implementation documentation
-- **BUILD_STATUS.md**: Build troubleshooting and dependency issues
-- **QUICK_BUILD.md**: Quick reference for building and using the editor
+- **CLAUDE_CONTEXT.md**: Complete project status and architecture overview
+- **NUSHELL_COMPATIBILITY.md**: Shell compatibility issues and workarounds
+- **FLOATING_COMMAND_BAR_DESIGN.md**: Floating command bar feature documentation
+- **TERMINAL_SUSPEND_ISSUE.md**: Recovery from accidental Ctrl+Z suspension
+- **QUICK_BUILD_REFERENCE.md**: Quick reference for building and troubleshooting
 
 ## Project Architecture
 

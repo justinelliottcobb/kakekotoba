@@ -109,8 +109,14 @@ impl KeyInput {
                 0x109 => "Escape".to_string(),
                 0x10A => "Enter".to_string(),
                 1115121 => "Enter".to_string(),  // NCKEY_ENTER on some systems
+                // Backspace - multiple possible codes
                 0x107 => "Backspace".to_string(),
+                0x11037F => "Backspace".to_string(),  // 1115007 - actual code from terminal
+                1115007 => "Backspace".to_string(),   // Same as above in decimal
+                // Delete - multiple possible codes
                 0x14A => "Delete".to_string(),
+                0x110380 => "Delete".to_string(),     // 1115008 - actual code from terminal
+                1115008 => "Delete".to_string(),      // Same as above in decimal
                 // Home/End
                 0x106 => "Home".to_string(),
                 0x168 => "End".to_string(),
@@ -281,6 +287,7 @@ impl KeyboardHandler {
         normal_bindings.insert("Down".to_string(), EditorCommand::MoveDown);
         normal_bindings.insert("Left".to_string(), EditorCommand::MoveLeft);
         normal_bindings.insert("Right".to_string(), EditorCommand::MoveRight);
+        normal_bindings.insert("Backspace".to_string(), EditorCommand::MoveLeft);  // Backspace moves left like vim
 
         // Word movement
         normal_bindings.insert("w".to_string(), EditorCommand::MoveWordForward);
@@ -297,6 +304,7 @@ impl KeyboardHandler {
 
         // Deletion
         normal_bindings.insert("x".to_string(), EditorCommand::DeleteChar);
+        normal_bindings.insert("Delete".to_string(), EditorCommand::DeleteChar);  // Delete key works like 'x'
         normal_bindings.insert("X".to_string(), EditorCommand::DeleteCharBackward);
         normal_bindings.insert("dd".to_string(), EditorCommand::DeleteLine);
         normal_bindings.insert("dw".to_string(), EditorCommand::DeleteWord);
@@ -331,6 +339,7 @@ impl KeyboardHandler {
         let mut insert_bindings = HashMap::new();
         insert_bindings.insert("Escape".to_string(), EditorCommand::EnterNormalMode);
         insert_bindings.insert("Backspace".to_string(), EditorCommand::DeleteCharBackward);
+        insert_bindings.insert("Delete".to_string(), EditorCommand::DeleteChar);
         insert_bindings.insert("Enter".to_string(), EditorCommand::InsertChar('\n'));
         // All other keys insert their character
         self.bindings.insert(EditorMode::Insert, insert_bindings);
