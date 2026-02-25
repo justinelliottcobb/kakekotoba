@@ -3,23 +3,23 @@
 //! This module provides support for reading and writing various file formats
 //! with spatial metadata preservation for vertical text and programming features.
 
-use crate::{Result, TategakiError};
-use crate::text_engine::VerticalTextBuffer;
 use crate::spatial::SpatialPosition;
+use crate::text_engine::VerticalTextBuffer;
+use crate::{Result, TategakiError};
 use std::path::Path;
 
+pub mod json;
+pub mod markdown;
 pub mod plain_text;
 pub mod spatial_format;
-pub mod markdown;
-pub mod json;
 
+pub use json::*;
+pub use markdown::*;
 pub use plain_text::*;
 pub use spatial_format::*;
-pub use markdown::*;
-pub use json::*;
 
 /// Supported file formats
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FileFormat {
     /// Plain text (.txt)
     PlainText,
@@ -102,19 +102,20 @@ impl Default for FileMetadata {
 }
 
 /// File operations trait for different formats
-pub trait FileHandler {
+pub trait FileHandler: Send + Sync {
     /// Load text buffer from file
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)>;
-    
+
     /// Save text buffer to file
-    fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()>;
-    
+    fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path)
+        -> Result<()>;
+
     /// Check if format supports spatial metadata
     fn supports_spatial_metadata(&self) -> bool;
-    
+
     /// Get supported file extensions
     fn file_extensions(&self) -> Vec<&'static str>;
-    
+
     /// Validate file content before loading
     fn validate(&self, path: &Path) -> Result<()>;
 }
@@ -127,13 +128,14 @@ pub struct FileManager {
 impl FileManager {
     /// Create new file manager with all supported formats
     pub fn new() -> Self {
-        let mut handlers: std::collections::HashMap<FileFormat, Box<dyn FileHandler>> = std::collections::HashMap::new();
-        
+        let mut handlers: std::collections::HashMap<FileFormat, Box<dyn FileHandler>> =
+            std::collections::HashMap::new();
+
         handlers.insert(FileFormat::PlainText, Box::new(PlainTextHandler::new()));
         handlers.insert(FileFormat::Spatial, Box::new(SpatialFormatHandler::new()));
         handlers.insert(FileFormat::Markdown, Box::new(MarkdownHandler::new()));
         handlers.insert(FileFormat::Json, Box::new(JsonHandler::new()));
-        
+
         Self { handlers }
     }
 
@@ -144,7 +146,11 @@ impl FileManager {
     }
 
     /// Load file with specific format
-    pub fn load_with_format(&self, path: &Path, format: FileFormat) -> Result<(VerticalTextBuffer, FileMetadata)> {
+    pub fn load_with_format(
+        &self,
+        path: &Path,
+        format: FileFormat,
+    ) -> Result<(VerticalTextBuffer, FileMetadata)> {
         let actual_format = if format == FileFormat::Auto {
             FileFormat::from_extension(path)
         } else {
@@ -155,12 +161,20 @@ impl FileManager {
             handler.validate(path)?;
             handler.load(path)
         } else {
-            Err(TategakiError::UnsupportedFormat(format!("Unsupported format: {:?}", actual_format)))
+            Err(TategakiError::UnsupportedFormat(format!(
+                "Unsupported format: {:?}",
+                actual_format
+            )))
         }
     }
 
     /// Save file with automatic format detection
-    pub fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()> {
+    pub fn save(
+        &self,
+        buffer: &VerticalTextBuffer,
+        metadata: &FileMetadata,
+        path: &Path,
+    ) -> Result<()> {
         let format = if metadata.format == FileFormat::Auto {
             FileFormat::from_extension(path)
         } else {
@@ -170,22 +184,28 @@ impl FileManager {
         if let Some(handler) = self.handlers.get(&format) {
             handler.save(buffer, metadata, path)
         } else {
-            Err(TategakiError::UnsupportedFormat(format!("Unsupported format: {:?}", format)))
+            Err(TategakiError::UnsupportedFormat(format!(
+                "Unsupported format: {:?}",
+                format
+            )))
         }
     }
 
     /// Save file with specific format
     pub fn save_with_format(
-        &self, 
-        buffer: &VerticalTextBuffer, 
-        metadata: &FileMetadata, 
+        &self,
+        buffer: &VerticalTextBuffer,
+        metadata: &FileMetadata,
         path: &Path,
-        format: FileFormat
+        format: FileFormat,
     ) -> Result<()> {
         if let Some(handler) = self.handlers.get(&format) {
             handler.save(buffer, metadata, path)
         } else {
-            Err(TategakiError::UnsupportedFormat(format!("Unsupported format: {:?}", format)))
+            Err(TategakiError::UnsupportedFormat(format!(
+                "Unsupported format: {:?}",
+                format
+            )))
         }
     }
 
@@ -208,38 +228,64 @@ impl FileManager {
         }
     }
 
+    /// Check if format supports spatial metadata
+    pub fn supports_spatial_metadata(&self, format: FileFormat) -> bool {
+        if let Some(handler) = self.handlers.get(&format) {
+            handler.supports_spatial_metadata()
+        } else {
+            false
+        }
+    }
+
     /// Create backup of file before saving
     pub fn create_backup(&self, path: &Path) -> Result<()> {
         if !path.exists() {
             return Ok(()); // No file to backup
         }
 
-        let backup_path = path.with_extension(
-            format!("{}.backup", path.extension().unwrap_or_default().to_string_lossy())
-        );
+        let backup_path = path.with_extension(format!(
+            "{}.backup",
+            path.extension().unwrap_or_default().to_string_lossy()
+        ));
 
-        std::fs::copy(path, &backup_path)
-            .map_err(|e| TategakiError::Io(format!("Failed to create backup: {}", e)))?;
+        std::fs::copy(path, &backup_path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to create backup: {}", e),
+            ))
+        })?;
 
         Ok(())
     }
 
     /// Restore from backup
     pub fn restore_backup(&self, path: &Path) -> Result<()> {
-        let backup_path = path.with_extension(
-            format!("{}.backup", path.extension().unwrap_or_default().to_string_lossy())
-        );
+        let backup_path = path.with_extension(format!(
+            "{}.backup",
+            path.extension().unwrap_or_default().to_string_lossy()
+        ));
 
         if !backup_path.exists() {
-            return Err(TategakiError::Io("No backup file found".to_string()));
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "No backup file found",
+            )));
         }
 
-        std::fs::copy(&backup_path, path)
-            .map_err(|e| TategakiError::Io(format!("Failed to restore backup: {}", e)))?;
+        std::fs::copy(&backup_path, path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to restore backup: {}", e),
+            ))
+        })?;
 
         // Optionally remove backup after successful restore
-        std::fs::remove_file(&backup_path)
-            .map_err(|e| TategakiError::Io(format!("Failed to remove backup: {}", e)))?;
+        std::fs::remove_file(&backup_path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to remove backup: {}", e),
+            ))
+        })?;
 
         Ok(())
     }
@@ -269,12 +315,20 @@ pub mod utils {
 
     /// Detect file encoding
     pub fn detect_encoding(path: &Path) -> Result<String> {
-        let mut file = std::fs::File::open(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to open file: {}", e)))?;
-        
+        let mut file = std::fs::File::open(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to open file: {}", e),
+            ))
+        })?;
+
         let mut buffer = [0; 1024];
-        let bytes_read = file.read(&mut buffer)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+        let bytes_read = file.read(&mut buffer).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read file: {}", e),
+            ))
+        })?;
 
         // Simple UTF-8 validation
         if std::str::from_utf8(&buffer[..bytes_read]).is_ok() {
@@ -287,12 +341,20 @@ pub mod utils {
 
     /// Check if file is binary
     pub fn is_binary_file(path: &Path) -> Result<bool> {
-        let mut file = std::fs::File::open(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to open file: {}", e)))?;
-        
+        let mut file = std::fs::File::open(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to open file: {}", e),
+            ))
+        })?;
+
         let mut buffer = [0; 512];
-        let bytes_read = file.read(&mut buffer)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+        let bytes_read = file.read(&mut buffer).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read file: {}", e),
+            ))
+        })?;
 
         // Simple heuristic: if more than 30% of bytes are non-printable, consider binary
         let non_printable = buffer[..bytes_read]
@@ -305,8 +367,12 @@ pub mod utils {
 
     /// Get file size
     pub fn file_size(path: &Path) -> Result<u64> {
-        let metadata = std::fs::metadata(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to get file metadata: {}", e)))?;
+        let metadata = std::fs::metadata(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to get file metadata: {}", e),
+            ))
+        })?;
         Ok(metadata.len())
     }
 
@@ -335,11 +401,26 @@ mod tests {
 
     #[test]
     fn test_format_detection() {
-        assert_eq!(FileFormat::from_extension(Path::new("test.txt")), FileFormat::PlainText);
-        assert_eq!(FileFormat::from_extension(Path::new("test.spatial")), FileFormat::Spatial);
-        assert_eq!(FileFormat::from_extension(Path::new("test.md")), FileFormat::Markdown);
-        assert_eq!(FileFormat::from_extension(Path::new("test.json")), FileFormat::Json);
-        assert_eq!(FileFormat::from_extension(Path::new("test")), FileFormat::PlainText);
+        assert_eq!(
+            FileFormat::from_extension(Path::new("test.txt")),
+            FileFormat::PlainText
+        );
+        assert_eq!(
+            FileFormat::from_extension(Path::new("test.spatial")),
+            FileFormat::Spatial
+        );
+        assert_eq!(
+            FileFormat::from_extension(Path::new("test.md")),
+            FileFormat::Markdown
+        );
+        assert_eq!(
+            FileFormat::from_extension(Path::new("test.json")),
+            FileFormat::Json
+        );
+        assert_eq!(
+            FileFormat::from_extension(Path::new("test")),
+            FileFormat::PlainText
+        );
     }
 
     #[test]
@@ -371,7 +452,10 @@ mod tests {
     fn test_format_descriptions() {
         assert_eq!(FileFormat::PlainText.description(), "Plain Text");
         assert_eq!(FileFormat::Spatial.description(), "Spatial Text Format");
-        assert_eq!(FileFormat::Markdown.description(), "Markdown with Vertical Extensions");
+        assert_eq!(
+            FileFormat::Markdown.description(),
+            "Markdown with Vertical Extensions"
+        );
         assert_eq!(FileFormat::Json.description(), "JSON with Spatial Metadata");
     }
 }

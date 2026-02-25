@@ -1,11 +1,11 @@
 //! Core GPUI editor implementation
 
-#[cfg(feature = "gpui")]
-use gpui::*;
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
 use crate::japanese::JapaneseInputMethod;
 use crate::spatial::SpatialPosition;
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
+#[cfg(feature = "gpui")]
+use gpui::*;
 
 #[cfg(feature = "gpui")]
 /// Main vertical text editor view
@@ -29,7 +29,7 @@ impl VerticalEditorView {
         let buffer = VerticalTextBuffer::new(config.text_direction);
         let ime = JapaneseInputMethod::new();
         let cursor_position = SpatialPosition::origin();
-        
+
         Self {
             buffer,
             ime,
@@ -169,11 +169,7 @@ impl VerticalEditorView {
     fn render_content(&mut self, _cx: &mut ViewContext<Self>) -> impl IntoElement {
         div()
             .size_full()
-            .child(
-                div()
-                    .id("text-content")
-                    .child(self.buffer.as_text())
-            )
+            .child(div().id("text-content").child(self.buffer.as_text()))
     }
 }
 
@@ -192,6 +188,8 @@ impl VerticalEditorView {
     }
 
     pub fn load_text(&mut self, _text: &str) -> Result<()> {
-        Err(TategakiError::Rendering("GPUI feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "GPUI feature not enabled".to_string(),
+        ))
     }
 }

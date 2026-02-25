@@ -16,33 +16,35 @@ use ratatui::{
 
 #[cfg(feature = "ratatui")]
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers},
+    event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers,
+    },
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
+use crate::japanese::{InputResult, JapaneseInputMethod};
 use crate::spatial::{SpatialPosition, SpatialRange};
-use crate::japanese::{JapaneseInputMethod, InputResult};
+use crate::text_engine::{LayoutEngine, TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 
+#[cfg(feature = "ratatui")]
+pub mod cursor;
 #[cfg(feature = "ratatui")]
 pub mod editor;
 #[cfg(feature = "ratatui")]
-pub mod renderer;
-#[cfg(feature = "ratatui")]
 pub mod keyboard;
 #[cfg(feature = "ratatui")]
-pub mod cursor;
+pub mod renderer;
 
+#[cfg(feature = "ratatui")]
+pub use cursor::*;
 #[cfg(feature = "ratatui")]
 pub use editor::*;
 #[cfg(feature = "ratatui")]
-pub use renderer::*;
-#[cfg(feature = "ratatui")]
 pub use keyboard::*;
 #[cfg(feature = "ratatui")]
-pub use cursor::*;
+pub use renderer::*;
 
 #[cfg(feature = "ratatui")]
 /// Terminal-based vertical text editor
@@ -140,7 +142,7 @@ impl TerminalVerticalEditor {
     /// Run the editor main loop
     pub fn run<B: Backend>(&mut self, backend: B) -> Result<()> {
         let mut terminal = ratatui::Terminal::new(backend)?;
-        
+
         // Setup terminal
         enable_raw_mode()?;
         execute!(
@@ -170,7 +172,7 @@ impl TerminalVerticalEditor {
         loop {
             // Update terminal size
             self.terminal_size = terminal.size()?.into();
-            
+
             // Render
             terminal.draw(|f| self.render(f))?;
 
@@ -178,8 +180,8 @@ impl TerminalVerticalEditor {
             if let Event::Key(key) = event::read()? {
                 if key.kind == KeyEventKind::Press {
                     match self.handle_key_event(key) {
-                        Ok(true) => continue,  // Continue editing
-                        Ok(false) => break,    // Quit requested
+                        Ok(true) => continue, // Continue editing
+                        Ok(false) => break,   // Quit requested
                         Err(e) => {
                             self.update_status(&format!("Error: {}", e));
                             continue;
@@ -267,7 +269,7 @@ impl TerminalVerticalEditor {
 
             // Quit
             KeyCode::Char('q') => Ok(false),
-            
+
             _ => Ok(true),
         }
     }
@@ -422,13 +424,13 @@ impl TerminalVerticalEditor {
             TextDirection::HorizontalLeftToRight => TextDirection::VerticalTopToBottom,
             _ => TextDirection::VerticalTopToBottom,
         };
-        
+
         // Update buffer direction
         self.buffer.set_direction(self.config.text_direction);
-        
+
         // Update renderer direction
         self.renderer.set_direction(self.config.text_direction);
-        
+
         self.update_status(&format!("Direction: {:?}", self.config.text_direction));
     }
 
@@ -440,50 +442,59 @@ impl TerminalVerticalEditor {
     /// Render the editor interface
     fn render(&mut self, f: &mut Frame) {
         let size = f.size();
-        
+
         // Create layout
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(1),      // Header
-                Constraint::Min(1),         // Main editor area
-                Constraint::Length(1),      // Status line
+                Constraint::Length(1), // Header
+                Constraint::Min(1),    // Main editor area
+                Constraint::Length(1), // Status line
             ])
             .split(size);
 
         // Render header
         self.render_header(f, chunks[0]);
-        
+
         // Render main editor area
         if self.show_candidates {
             self.render_editor_with_candidates(f, chunks[1]);
         } else {
             self.render_editor(f, chunks[1]);
         }
-        
+
         // Render status line
         self.render_status_line(f, chunks[2]);
     }
 
     /// Render header
     fn render_header(&self, f: &mut Frame, area: Rect) {
-        let title = format!("Tategaki Editor - {} Mode", match self.mode {
-            EditingMode::Normal => "NORMAL",
-            EditingMode::Insert => "INSERT",
-            EditingMode::Visual => "VISUAL",
-            EditingMode::Command => "COMMAND",
-        });
-        
+        let title = format!(
+            "Tategaki Editor - {} Mode",
+            match self.mode {
+                EditingMode::Normal => "NORMAL",
+                EditingMode::Insert => "INSERT",
+                EditingMode::Visual => "VISUAL",
+                EditingMode::Command => "COMMAND",
+            }
+        );
+
         let header = Paragraph::new(title)
             .style(Style::default().fg(Color::White).bg(Color::Blue))
             .block(Block::default());
-        
+
         f.render_widget(header, area);
     }
 
     /// Render main editor area
     fn render_editor(&mut self, f: &mut Frame, area: Rect) {
-        self.renderer.render_buffer(&self.buffer, f, area, &mut self.cursor, self.selection.as_ref());
+        self.renderer.render_buffer(
+            &self.buffer,
+            f,
+            area,
+            &mut self.cursor,
+            self.selection.as_ref(),
+        );
     }
 
     /// Render editor with IME candidate window
@@ -498,7 +509,13 @@ impl TerminalVerticalEditor {
             .split(area);
 
         // Render editor
-        self.renderer.render_buffer(&self.buffer, f, chunks[0], &mut self.cursor, self.selection.as_ref());
+        self.renderer.render_buffer(
+            &self.buffer,
+            f,
+            chunks[0],
+            &mut self.cursor,
+            self.selection.as_ref(),
+        );
 
         // Render candidates
         self.render_candidates(f, chunks[1]);
@@ -532,15 +549,12 @@ impl TerminalVerticalEditor {
         let pos = self.cursor.position();
         let status = format!(
             "{} | Pos: {}:{} | Dir: {:?}",
-            self.status_message,
-            pos.column,
-            pos.row,
-            self.config.text_direction
+            self.status_message, pos.column, pos.row, self.config.text_direction
         );
-        
-        let status_line = Paragraph::new(status)
-            .style(Style::default().fg(Color::White).bg(Color::Black));
-        
+
+        let status_line =
+            Paragraph::new(status).style(Style::default().fg(Color::White).bg(Color::Black));
+
         f.render_widget(status_line, area);
     }
 }
@@ -560,11 +574,15 @@ impl TerminalVerticalEditor {
     }
 
     pub fn load_text(&mut self, _text: &str) -> Result<()> {
-        Err(TategakiError::Rendering("Ratatui feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "Ratatui feature not enabled".to_string(),
+        ))
     }
 
     pub fn run<B>(&mut self, _backend: B) -> Result<()> {
-        Err(TategakiError::Rendering("Ratatui feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "Ratatui feature not enabled".to_string(),
+        ))
     }
 }
 

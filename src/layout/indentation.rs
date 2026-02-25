@@ -1,7 +1,7 @@
 //! Indentation analysis for vertical code layouts
 
-use crate::vertical::{Position2D, SpatialToken, SpatialTokenKind, WritingDirection};
 use crate::error::Result;
+use crate::vertical::{Position2D, SpatialToken, SpatialTokenKind, WritingDirection};
 use std::collections::HashMap;
 
 /// Analyzes indentation patterns in vertically-written code
@@ -54,15 +54,15 @@ impl IndentationAnalyzer {
     /// Calculate how much a whitespace token contributes to indentation
     fn calculate_indent_contribution(&self, content: &str) -> usize {
         let mut contribution = 0;
-        
+
         for ch in content.chars() {
             match ch {
                 ' ' => contribution += 1,
                 '\t' => contribution += 4, // Tab = 4 spaces by default
-                _ => {} // Other whitespace doesn't count toward indentation
+                _ => {}                    // Other whitespace doesn't count toward indentation
             }
         }
-        
+
         contribution
     }
 
@@ -124,7 +124,7 @@ impl IndentationAnalyzer {
         }
 
         differences.sort_unstable();
-        
+
         // Return the most common difference, or 4 as default
         differences.first().copied().unwrap_or(4)
     }
@@ -230,14 +230,16 @@ impl IndentationTracker {
 
     /// Find all block starts (indentation increases)
     pub fn block_starts(&self) -> Vec<&IndentationChange> {
-        self.changes.iter()
+        self.changes
+            .iter()
             .filter(|change| change.change_type == IndentationChangeType::Increase)
             .collect()
     }
 
     /// Find all block ends (indentation decreases)
     pub fn block_ends(&self) -> Vec<&IndentationChange> {
-        self.changes.iter()
+        self.changes
+            .iter()
             .filter(|change| change.change_type == IndentationChangeType::Decrease)
             .collect()
     }
@@ -257,7 +259,7 @@ mod tests {
     #[test]
     fn test_indentation_analyzer() {
         let analyzer = IndentationAnalyzer::new(WritingDirection::VerticalTbRl);
-        
+
         // Create mock tokens with indentation
         let tokens = vec![
             SpatialToken::new(
@@ -288,14 +290,14 @@ mod tests {
     #[test]
     fn test_indentation_tracker() {
         let mut tracker = IndentationTracker::new();
-        
+
         tracker.record_level(Position2D::new(0, 0, 0), 0);
         tracker.record_level(Position2D::new(0, 1, 10), 4);
         tracker.record_level(Position2D::new(0, 2, 20), 0);
-        
+
         assert_eq!(tracker.current_level(), 0);
         assert_eq!(tracker.changes().len(), 2);
-        
+
         let block_starts = tracker.block_starts();
         assert_eq!(block_starts.len(), 1);
         assert_eq!(block_starts[0].to_level, 4);
@@ -304,17 +306,15 @@ mod tests {
     #[test]
     fn test_indentation_style_detection() {
         let analyzer = IndentationAnalyzer::new(WritingDirection::VerticalTbRl);
-        
+
         // Test with tab indentation
-        let tab_tokens = vec![
-            SpatialToken::new(
-                "\t".to_string(),
-                Span2D::new(Position2D::new(0, 0, 0), Position2D::new(1, 0, 1)),
-                SpatialTokenKind::Whitespace,
-                WritingDirection::VerticalTbRl,
-            ),
-        ];
-        
+        let tab_tokens = vec![SpatialToken::new(
+            "\t".to_string(),
+            Span2D::new(Position2D::new(0, 0, 0), Position2D::new(1, 0, 1)),
+            SpatialTokenKind::Whitespace,
+            WritingDirection::VerticalTbRl,
+        )];
+
         let style = analyzer.detect_indentation_style(&tab_tokens);
         assert_eq!(style, IndentationStyle::Tabs);
     }

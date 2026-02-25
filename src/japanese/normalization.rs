@@ -1,7 +1,7 @@
 //! Text normalization for Japanese programming languages
 
-use unicode_normalization::{UnicodeNormalization, is_nfc, is_nfd, is_nfkc, is_nfkd};
 use crate::error::Result;
+use unicode_normalization::{is_nfc, is_nfd, is_nfkc, is_nfkd, UnicodeNormalization};
 
 /// Normalizes Japanese text for consistent processing in programming contexts
 pub struct TextNormalizer {
@@ -62,12 +62,12 @@ impl TextNormalizer {
     /// Apply Japanese-specific normalizations
     fn normalize_japanese_specific(&self, text: &str) -> String {
         let mut result = String::with_capacity(text.len());
-        
+
         for c in text.chars() {
             let normalized_char = self.normalize_japanese_char(c);
             result.push(normalized_char);
         }
-        
+
         result
     }
 
@@ -87,7 +87,7 @@ impl TextNormalizer {
                 // Convert full-width digits to half-width
                 char::from_u32(c as u32 - 0xFEE0).unwrap_or(c)
             }
-            
+
             // Normalize certain punctuation marks
             '．' => '.', // Full-width period to half-width
             '，' => ',', // Full-width comma to half-width
@@ -95,7 +95,7 @@ impl TextNormalizer {
             '？' => '?', // Full-width question to half-width
             '：' => ':', // Full-width colon to half-width
             '；' => ';', // Full-width semicolon to half-width
-            
+
             // Normalize parentheses and brackets
             '（' => '(',
             '）' => ')',
@@ -103,7 +103,7 @@ impl TextNormalizer {
             '］' => ']',
             '｛' => '{',
             '｝' => '}',
-            
+
             // Leave other characters as-is
             _ => c,
         }
@@ -122,7 +122,7 @@ impl TextNormalizer {
     /// Get normalization statistics for text
     pub fn analyze_normalization(&self, text: &str) -> NormalizationAnalysis {
         let normalized = self.normalize(text).unwrap_or_else(|_| text.to_string());
-        
+
         NormalizationAnalysis {
             original_length: text.len(),
             normalized_length: normalized.len(),
@@ -144,20 +144,33 @@ impl TextNormalizer {
 
     /// Check if a character is Japanese punctuation
     fn is_japanese_punctuation(&self, c: char) -> bool {
-        matches!(c,
-            '、' | '。' | '「' | '」' | '『' | '』' |
-            '・' | '〜' | '〈' | '〉' | '《' | '》' |
-            '〔' | '〕' | '【' | '】'
+        matches!(
+            c,
+            '、' | '。'
+                | '「'
+                | '」'
+                | '『'
+                | '』'
+                | '・'
+                | '〜'
+                | '〈'
+                | '〉'
+                | '《'
+                | '》'
+                | '〔'
+                | '〕'
+                | '【'
+                | '】'
         )
     }
 
     /// Normalize text specifically for programming identifiers
     pub fn normalize_identifier(&self, text: &str) -> Result<String> {
         let normalized = self.normalize(text)?;
-        
+
         // Additional identifier-specific normalizations
         let mut result = String::with_capacity(normalized.len());
-        
+
         for c in normalized.chars() {
             // For identifiers, we might want to be more restrictive
             match c {
@@ -171,7 +184,7 @@ impl TextNormalizer {
                 _ => {}
             }
         }
-        
+
         Ok(result)
     }
 
@@ -225,8 +238,7 @@ impl NormalizationAnalysis {
 
     /// Check if normalization changed the text significantly
     pub fn has_significant_changes(&self) -> bool {
-        !self.was_already_normalized && 
-        (self.has_full_width_chars || self.has_japanese_punctuation)
+        !self.was_already_normalized && (self.has_full_width_chars || self.has_japanese_punctuation)
     }
 }
 
@@ -245,14 +257,16 @@ impl BatchNormalizer {
 
     /// Normalize multiple texts in batch
     pub fn normalize_batch(&self, texts: &[&str]) -> Result<Vec<String>> {
-        texts.iter()
+        texts
+            .iter()
             .map(|text| self.normalizer.normalize(text))
             .collect()
     }
 
     /// Get normalization statistics for multiple texts
     pub fn analyze_batch(&self, texts: &[&str]) -> Vec<NormalizationAnalysis> {
-        texts.iter()
+        texts
+            .iter()
             .map(|text| self.normalizer.analyze_normalization(text))
             .collect()
     }
@@ -282,8 +296,12 @@ impl NormalizationUtils {
     /// Check if two texts are equivalent after normalization
     pub fn are_equivalent(text1: &str, text2: &str, form: NormalizationForm) -> bool {
         let normalizer = TextNormalizer::with_form(form, true);
-        let norm1 = normalizer.normalize(text1).unwrap_or_else(|_| text1.to_string());
-        let norm2 = normalizer.normalize(text2).unwrap_or_else(|_| text2.to_string());
+        let norm1 = normalizer
+            .normalize(text1)
+            .unwrap_or_else(|_| text1.to_string());
+        let norm2 = normalizer
+            .normalize(text2)
+            .unwrap_or_else(|_| text2.to_string());
         norm1 == norm2
     }
 
@@ -295,9 +313,13 @@ impl NormalizationUtils {
 
         let from_normalizer = TextNormalizer::with_form(from, false);
         let to_normalizer = TextNormalizer::with_form(to, false);
-        
-        let intermediate = from_normalizer.normalize(text).unwrap_or_else(|_| text.to_string());
-        to_normalizer.normalize(&intermediate).unwrap_or(intermediate)
+
+        let intermediate = from_normalizer
+            .normalize(text)
+            .unwrap_or_else(|_| text.to_string());
+        to_normalizer
+            .normalize(&intermediate)
+            .unwrap_or(intermediate)
     }
 }
 
@@ -315,11 +337,11 @@ mod tests {
     #[test]
     fn test_basic_normalization() {
         let normalizer = TextNormalizer::new();
-        
+
         // Test full-width to half-width conversion
         let result = normalizer.normalize("Ａｂｃ１２３").unwrap();
         assert_eq!(result, "Abc123");
-        
+
         // Test punctuation normalization
         let result = normalizer.normalize("！？：；").unwrap();
         assert_eq!(result, "!?:;");
@@ -328,11 +350,11 @@ mod tests {
     #[test]
     fn test_unicode_normalization() {
         let normalizer = TextNormalizer::with_form(NormalizationForm::NFC, false);
-        
+
         // Test with composed vs decomposed characters
         let composed = "が"; // Composed hiragana GA
         let decomposed = "が"; // This might be decomposed depending on source
-        
+
         let result = normalizer.normalize(composed).unwrap();
         assert!(!result.is_empty());
     }
@@ -348,7 +370,7 @@ mod tests {
     fn test_normalization_analysis() {
         let normalizer = TextNormalizer::new();
         let analysis = normalizer.analyze_normalization("Ａｂｃ！");
-        
+
         assert!(analysis.has_full_width_chars);
         assert!(!analysis.was_already_normalized);
         assert_eq!(analysis.form, NormalizationForm::NFC);
@@ -357,7 +379,7 @@ mod tests {
     #[test]
     fn test_identifier_normalization() {
         let normalizer = TextNormalizer::new();
-        
+
         let result = normalizer.normalize_identifier("関数ーＮａｍｅ").unwrap();
         // Should convert full-width to half-width and handle dashes
         assert!(result.contains("関数"));
@@ -367,7 +389,7 @@ mod tests {
     #[test]
     fn test_is_normalized() {
         let normalizer = TextNormalizer::with_form(NormalizationForm::NFC, false);
-        
+
         // ASCII text should already be normalized
         assert!(normalizer.is_normalized("hello world"));
     }
@@ -376,7 +398,7 @@ mod tests {
     fn test_batch_normalizer() {
         let batch = BatchNormalizer::new(NormalizationForm::NFC, true);
         let texts = vec!["Ａ", "Ｂ", "Ｃ"];
-        
+
         let results = batch.normalize_batch(&texts).unwrap();
         assert_eq!(results, vec!["A", "B", "C"]);
     }
@@ -385,7 +407,7 @@ mod tests {
     fn test_normalization_utils() {
         let form = NormalizationUtils::detect_best_form("hello world");
         assert_eq!(form, NormalizationForm::NFC);
-        
+
         assert!(NormalizationUtils::are_equivalent(
             "Ａｂｃ",
             "Abc",
@@ -396,11 +418,11 @@ mod tests {
     #[test]
     fn test_character_classification() {
         let normalizer = TextNormalizer::new();
-        
+
         assert!(normalizer.is_full_width_char('Ａ'));
         assert!(normalizer.is_full_width_char('１'));
         assert!(!normalizer.is_full_width_char('A'));
-        
+
         assert!(normalizer.is_japanese_punctuation('。'));
         assert!(normalizer.is_japanese_punctuation('、'));
         assert!(!normalizer.is_japanese_punctuation('.'));

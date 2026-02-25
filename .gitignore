@@ -1,1 +1,20 @@
+# Build artifacts
 /target
+tategaki-ed/target
+
+# Debug/test artifacts
+tategaki-ed/debug.log
+tategaki-ed/test_output.txt
+tategaki-ed/test_*.sh
+tategaki-ed/test_minimal.rs
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

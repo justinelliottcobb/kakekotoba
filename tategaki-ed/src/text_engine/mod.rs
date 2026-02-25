@@ -40,12 +40,18 @@ impl Default for TextDirection {
 impl TextDirection {
     /// Check if this direction is vertical
     pub fn is_vertical(&self) -> bool {
-        matches!(self, Self::VerticalTopToBottom | Self::VerticalTopToBottomLtr)
+        matches!(
+            self,
+            Self::VerticalTopToBottom | Self::VerticalTopToBottomLtr
+        )
     }
 
     /// Check if this direction is horizontal
     pub fn is_horizontal(&self) -> bool {
-        matches!(self, Self::HorizontalLeftToRight | Self::HorizontalRightToLeft)
+        matches!(
+            self,
+            Self::HorizontalLeftToRight | Self::HorizontalRightToLeft
+        )
     }
 
     /// Get the primary reading direction
@@ -68,7 +74,10 @@ impl TextDirection {
 
     /// Check if text flows right-to-left in the secondary axis
     pub fn is_rtl_secondary(&self) -> bool {
-        matches!(self, Self::VerticalTopToBottom | Self::HorizontalRightToLeft)
+        matches!(
+            self,
+            Self::VerticalTopToBottom | Self::HorizontalRightToLeft
+        )
     }
 }
 
@@ -265,7 +274,7 @@ impl VerticalTextBuffer {
     /// Insert text at the beginning (placeholder)
     fn insert_text_at_start(&mut self, text: &str) -> Result<()> {
         let graphemes: Vec<String> = text.graphemes(true).map(|s| s.to_string()).collect();
-        
+
         // Track line breaks
         let mut line_break_offset = 0;
         for (i, grapheme) in graphemes.iter().enumerate() {
@@ -276,7 +285,7 @@ impl VerticalTextBuffer {
                 line_break_offset += 1;
             }
         }
-        
+
         self.content = graphemes;
         Ok(())
     }
@@ -312,8 +321,12 @@ impl VerticalTextBuffer {
     }
 
     /// Get diagnostics at position
-    pub fn diagnostics_at(&self, position: &crate::spatial::SpatialPosition) -> Vec<&DiagnosticMarker> {
-        self.spatial_metadata.diagnostic_markers
+    pub fn diagnostics_at(
+        &self,
+        position: &crate::spatial::SpatialPosition,
+    ) -> Vec<&DiagnosticMarker> {
+        self.spatial_metadata
+            .diagnostic_markers
             .iter()
             .filter(|marker| &marker.position == position)
             .collect()
@@ -390,11 +403,15 @@ impl LayoutEngine {
     }
 
     /// Convert logical position to visual coordinates
-    pub fn logical_to_visual(&self, position: &crate::spatial::SpatialPosition) -> Result<(f32, f32)> {
+    pub fn logical_to_visual(
+        &self,
+        position: &crate::spatial::SpatialPosition,
+    ) -> Result<(f32, f32)> {
         match self.direction {
             TextDirection::VerticalTopToBottom => {
                 // In vertical text, columns go right-to-left, rows go top-to-bottom
-                let x = self.viewport.width - (position.column as f32 * self.font_metrics.char_width);
+                let x =
+                    self.viewport.width - (position.column as f32 * self.font_metrics.char_width);
                 let y = position.row as f32 * self.font_metrics.line_height;
                 Ok((x, y))
             }
@@ -468,7 +485,9 @@ mod tests {
 
     #[test]
     fn test_buffer_from_text() {
-        let buffer = VerticalTextBuffer::from_text("Hello\nWorld", TextDirection::VerticalTopToBottom).unwrap();
+        let buffer =
+            VerticalTextBuffer::from_text("Hello\nWorld", TextDirection::VerticalTopToBottom)
+                .unwrap();
         assert_eq!(buffer.char_count(), 11); // Including newline
         assert_eq!(buffer.as_text(), "Hello\nWorld");
     }
@@ -478,7 +497,7 @@ mod tests {
         let engine = LayoutEngine::new(TextDirection::VerticalTopToBottom);
         let pos = crate::spatial::SpatialPosition::new(1, 2, 0);
         let visual = engine.logical_to_visual(&pos).unwrap();
-        
+
         // Should place text right-to-left for vertical
         assert!(visual.0 < engine.viewport.width);
         assert!(visual.1 > 0.0);

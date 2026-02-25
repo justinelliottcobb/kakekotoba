@@ -1,7 +1,7 @@
 //! Direction-aware text processing utilities
 
-use unicode_bidi::{BidiInfo, Level};
 use crate::error::Result;
+use unicode_bidi::{BidiInfo, Level};
 
 /// Direction information for text segments
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,7 +51,7 @@ impl DirectionAnalyzer {
     pub fn direction_at_range(&self, start: usize, end: usize) -> Result<DirectionInfo> {
         // Get the bidirectional level at the start position
         let levels = self.bidi_info.levels();
-        
+
         if let Some(level) = levels.get(start) {
             Ok(DirectionInfo::from_bidi_level(
                 *level,
@@ -72,7 +72,7 @@ impl DirectionAnalyzer {
         if levels.is_empty() {
             return false;
         }
-        
+
         let first_level = levels[0];
         levels.iter().any(|&level| level != first_level)
     }
@@ -81,27 +81,27 @@ impl DirectionAnalyzer {
     pub fn direction_changes(&self) -> Vec<(usize, DirectionInfo)> {
         let mut changes = Vec::new();
         let levels = self.bidi_info.levels();
-        
+
         if levels.is_empty() {
             return changes;
         }
-        
+
         let mut current_level = levels[0];
-        changes.push((0, DirectionInfo::from_bidi_level(
-            current_level,
-            super::WritingDirection::VerticalTbRl,
-        )));
-        
+        changes.push((
+            0,
+            DirectionInfo::from_bidi_level(current_level, super::WritingDirection::VerticalTbRl),
+        ));
+
         for (i, &level) in levels.iter().enumerate().skip(1) {
             if level != current_level {
                 current_level = level;
-                changes.push((i, DirectionInfo::from_bidi_level(
-                    level,
-                    super::WritingDirection::VerticalTbRl,
-                )));
+                changes.push((
+                    i,
+                    DirectionInfo::from_bidi_level(level, super::WritingDirection::VerticalTbRl),
+                ));
             }
         }
-        
+
         changes
     }
 }
@@ -121,7 +121,7 @@ mod tests {
     fn test_direction_analyzer() {
         let analyzer = DirectionAnalyzer::new("Hello 世界");
         assert!(!analyzer.has_mixed_directions());
-        
+
         let changes = analyzer.direction_changes();
         assert!(!changes.is_empty());
     }

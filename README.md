@@ -146,6 +146,68 @@ cargo run -- input.kake -O -o optimized_output
   写像(h.mapping, elements)
 ```
 
+## Tategaki-Ed Vertical Text Editor
+
+The kakekotoba project includes **tategaki-ed** (縦書きエディタ), a specialized text editor designed for vertical Japanese text editing with vim-like keybindings.
+
+### Editor Features
+
+- **Vertical Japanese Text**: Native support for top-to-bottom, right-to-left tategaki layout
+- **Notcurses Terminal Backend**: High-performance terminal rendering with full Unicode support
+- **Vim-like Modal Editing**: Complete Normal/Insert/Visual/Command mode system
+- **Floating Command Bar**: Modern overlay UI with vertical orientation support
+- **Unicode Vertical Forms**: Automatic conversion of punctuation (、→︑ 。→︒)
+- **Direction-Aware Navigation**: hjkl navigation adapted for vertical text flow
+- **Multi-byte UTF-8 Support**: Proper handling of Japanese, Chinese, and other CJK characters
+
+### Important: Shell Compatibility
+
+⚠️ **The notcurses-based editor does NOT work in nushell.** Use bash or zsh instead.
+
+```bash
+# If you're in nushell, switch to bash first
+bash
+
+# Then run the editor
+export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+cargo run --no-default-features --features notcurses --bin tategaki-ed-terminal myfile.txt
+```
+
+See `tategaki-ed/NUSHELL_COMPATIBILITY.md` for details.
+
+### Editor Binaries
+
+```bash
+# Terminal editor with notcurses backend (RECOMMENDED)
+export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+cargo build --no-default-features --features notcurses --bin tategaki-ed-terminal
+
+# Note: Other backends (ratatui, GPUI) are not currently functional
+```
+
+### Quick Start
+
+```bash
+# Run terminal editor (from bash or zsh, NOT nushell!)
+export BINDGEN_EXTRA_CLANG_ARGS="-I/usr/lib/gcc/x86_64-linux-gnu/14/include"
+cargo run --no-default-features --features notcurses --bin tategaki-ed-terminal myfile.txt
+
+# Vim keybindings
+# Normal mode: hjkl (navigate), i (insert), x (delete char), dd (delete line)
+# Insert mode: Type text, Backspace/Delete work, Esc to exit
+# Command mode: :w (save), :q (quit), :wq (save & quit), :q! (force quit)
+# Global: Ctrl+S (save), Ctrl+Q (quit)
+# Floating bar: zp (cycle position), zo (toggle orientation), zk/zj/zh/zl (move)
+```
+
+### Documentation
+
+- **CLAUDE_CONTEXT.md**: Complete project status and architecture overview
+- **NUSHELL_COMPATIBILITY.md**: Shell compatibility issues and workarounds
+- **FLOATING_COMMAND_BAR_DESIGN.md**: Floating command bar feature documentation
+- **TERMINAL_SUSPEND_ISSUE.md**: Recovery from accidental Ctrl+Z suspension
+- **QUICK_BUILD_REFERENCE.md**: Quick reference for building and troubleshooting
+
 ## Project Architecture
 
 ### Compiler Pipeline
@@ -168,6 +230,7 @@ Source Code → Lexer → Parser → Type Checker → Code Generator → Executa
 - **`src/codegen.rs`**: LLVM IR generation
 - **`src/pipeline.rs`**: Compilation orchestration
 - **`src/error.rs`**: Comprehensive error handling with source locations
+- **`tategaki-ed/`**: Vertical text editor with multiple backend support
 
 ### Key Dependencies
 

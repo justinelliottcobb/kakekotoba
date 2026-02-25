@@ -1,8 +1,11 @@
 use clap::{Arg, ArgAction, Command};
-use kakekotoba::pipeline::{Compiler, CompilerOptions, create_default_options, create_optimized_options, create_debug_options};
+use kakekotoba::pipeline::{
+    create_debug_options, create_default_options, create_optimized_options, Compiler,
+    CompilerOptions,
+};
 use std::process;
 use tracing::{error, info};
-use tracing_subscriber::{EnvFilter, fmt};
+use tracing_subscriber::{fmt, EnvFilter};
 
 fn main() {
     // Initialize tracing
@@ -63,12 +66,12 @@ fn main() {
         .get_matches();
 
     let input_file = matches.get_one::<String>("input").unwrap();
-    
+
     info!("Kakekotoba compiler starting");
     info!("Input file: {}", input_file);
 
     let compiler = Compiler::new();
-    
+
     // Handle different compilation modes
     if matches.get_flag("lex-only") {
         handle_lex_only(&compiler, input_file);
@@ -83,7 +86,7 @@ fn main() {
 
 fn handle_lex_only(compiler: &Compiler, input_file: &str) {
     info!("Running lexer only");
-    
+
     let source = match read_source_file(input_file) {
         Ok(source) => source,
         Err(e) => {
@@ -91,7 +94,7 @@ fn handle_lex_only(compiler: &Compiler, input_file: &str) {
             process::exit(1);
         }
     };
-    
+
     match compiler.lex_only(source) {
         Ok(tokens) => {
             println!("=== Tokens ===");
@@ -108,7 +111,7 @@ fn handle_lex_only(compiler: &Compiler, input_file: &str) {
 
 fn handle_parse_only(compiler: &Compiler, input_file: &str) {
     info!("Running parser only");
-    
+
     let source = match read_source_file(input_file) {
         Ok(source) => source,
         Err(e) => {
@@ -116,7 +119,7 @@ fn handle_parse_only(compiler: &Compiler, input_file: &str) {
             process::exit(1);
         }
     };
-    
+
     match compiler.parse_only(source) {
         Ok(ast) => {
             println!("=== Abstract Syntax Tree ===");
@@ -131,7 +134,7 @@ fn handle_parse_only(compiler: &Compiler, input_file: &str) {
 
 fn handle_type_check_only(compiler: &Compiler, input_file: &str) {
     info!("Running type checker only");
-    
+
     let source = match read_source_file(input_file) {
         Ok(source) => source,
         Err(e) => {
@@ -139,7 +142,7 @@ fn handle_type_check_only(compiler: &Compiler, input_file: &str) {
             process::exit(1);
         }
     };
-    
+
     match compiler.type_check_only(source) {
         Ok(result) => {
             println!("=== Type Information ===");
@@ -157,26 +160,29 @@ fn handle_type_check_only(compiler: &Compiler, input_file: &str) {
 
 fn handle_full_compilation(compiler: &Compiler, input_file: &str, matches: &clap::ArgMatches) {
     info!("Running full compilation");
-    
+
     let mut options = create_default_options();
-    
+
     // Configure options based on command line arguments
     options.optimize = matches.get_flag("optimize");
     options.output_ir = matches.get_flag("emit-ir");
     options.output_path = matches.get_one::<String>("output").cloned();
-    
+
     // If no output specified but optimization requested, create default output
     if options.optimize && options.output_path.is_none() {
         let output_name = input_file.replace(".kake", "").replace(".kakekotoba", "") + ".out";
         options.output_path = Some(output_name);
     }
-    
+
     match compiler.compile_file(input_file, options) {
         Ok(result) => {
             info!("Compilation completed successfully");
-            
+
             if let Some(executable) = result.executable {
-                println!("Generated executable: {} ({} bytes)", executable.path, executable.size);
+                println!(
+                    "Generated executable: {} ({} bytes)",
+                    executable.path, executable.size
+                );
             }
         }
         Err(e) => {
@@ -193,10 +199,10 @@ fn read_source_file(path: &str) -> Result<String, std::io::Error> {
 
 fn print_diagnostic(error: &kakekotoba::Error) {
     use miette::{GraphicalReportHandler, GraphicalTheme};
-    
+
     let mut handler = GraphicalReportHandler::new_themed(GraphicalTheme::unicode_nocolor());
     let mut output = String::new();
-    
+
     if handler.render_report(&mut output, error).is_ok() {
         eprintln!("{}", output);
     } else {
@@ -207,20 +213,20 @@ fn print_diagnostic(error: &kakekotoba::Error) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_simple_compilation() {
         let mut temp_file = NamedTempFile::new().unwrap();
         writeln!(temp_file, "// Simple kakekotoba program").unwrap();
-        
+
         let compiler = Compiler::new();
         let options = create_default_options();
-        
+
         // This should at least pass lexing stage
         let result = compiler.compile_file(temp_file.path(), options);
-        
+
         // Since we don't have actual grammar implemented yet,
         // we expect it to fail at parsing, but not at file reading
         match result {

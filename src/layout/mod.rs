@@ -4,17 +4,17 @@
 //! structure of vertically-written code, including indentation analysis,
 //! block detection, and layout-aware parsing support.
 
-use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 use crate::error::Result;
+use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 use std::collections::HashMap;
 
-pub mod indentation;
 pub mod blocks;
 pub mod flow;
+pub mod indentation;
 
-pub use indentation::*;
 pub use blocks::*;
 pub use flow::*;
+pub use indentation::*;
 
 /// Represents the layout structure of a piece of code
 #[derive(Debug, Clone)]
@@ -42,23 +42,24 @@ impl CodeLayout {
 
     /// Analyze layout from spatial tokens
     pub fn analyze(tokens: &[SpatialToken]) -> Result<Self> {
-        let direction = tokens.first()
+        let direction = tokens
+            .first()
             .map(|t| t.direction)
             .unwrap_or(WritingDirection::VerticalTbRl);
-        
+
         let mut layout = Self::new(direction);
-        
+
         // Analyze indentation
         let indentation_analyzer = IndentationAnalyzer::new(direction);
         layout.indentation_map = indentation_analyzer.analyze_tokens(tokens)?;
-        
+
         // Detect blocks
         let block_detector = BlockDetector::new(direction);
         layout.blocks = block_detector.detect_blocks(tokens, &layout.indentation_map)?;
-        
+
         // Analyze text flow
         layout.flow = TextFlow::analyze(tokens)?;
-        
+
         Ok(layout)
     }
 
@@ -74,7 +75,8 @@ impl CodeLayout {
 
     /// Get all blocks at a specific indentation level
     pub fn blocks_at_level(&self, level: usize) -> Vec<&CodeBlock> {
-        self.blocks.iter()
+        self.blocks
+            .iter()
             .filter(|block| block.indentation_level == level)
             .collect()
     }
@@ -103,20 +105,20 @@ impl SpatialMeasurer {
                 // In vertical text, we read top-to-bottom, right-to-left
                 let vertical_weight = 1.0;
                 let horizontal_weight = 2.0; // Columns are more significant
-                
+
                 let dx = (from.column as isize - to.column as isize) as f64;
                 let dy = (to.row as isize - from.row as isize) as f64;
-                
+
                 (dx * dx * horizontal_weight + dy * dy * vertical_weight).sqrt()
             }
             WritingDirection::HorizontalLtr => {
                 // Standard left-to-right horizontal text
                 let horizontal_weight = 2.0;
                 let vertical_weight = 1.0;
-                
+
                 let dx = (to.column as isize - from.column as isize) as f64;
                 let dy = (to.row as isize - from.row as isize) as f64;
-                
+
                 (dx * dx * horizontal_weight + dy * dy * vertical_weight).sqrt()
             }
             _ => {
@@ -152,7 +154,7 @@ impl SpatialMeasurer {
     /// Find the next position in reading order
     pub fn next_position(&self, current: Position2D, step_size: usize) -> Position2D {
         let mut next = current;
-        
+
         match self.direction {
             WritingDirection::VerticalTbRl => {
                 next.move_vertical(step_size as isize);
@@ -164,7 +166,7 @@ impl SpatialMeasurer {
                 next.move_horizontal(step_size as isize);
             }
         }
-        
+
         next
     }
 }
@@ -172,7 +174,7 @@ impl SpatialMeasurer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vertical::{SpatialTokenKind, SpatialTokenIterator};
+    use crate::vertical::{SpatialTokenIterator, SpatialTokenKind};
 
     #[test]
     fn test_code_layout_creation() {
@@ -185,12 +187,12 @@ mod tests {
     #[test]
     fn test_spatial_measurer() {
         let measurer = SpatialMeasurer::new(WritingDirection::VerticalTbRl);
-        
+
         let pos1 = Position2D::new(0, 0, 0);
         let pos2 = Position2D::new(0, 1, 5);
-        
+
         assert!(measurer.comes_before(pos1, pos2));
-        
+
         let distance = measurer.reading_distance(pos1, pos2);
         assert!(distance > 0.0);
     }
@@ -201,7 +203,7 @@ mod tests {
         let text = "関数\n  本体";
         let iter = SpatialTokenIterator::new(text, WritingDirection::VerticalTbRl).unwrap();
         let tokens: Vec<_> = iter.collect();
-        
+
         let layout = CodeLayout::analyze(&tokens).unwrap();
         assert_eq!(layout.direction, WritingDirection::VerticalTbRl);
     }

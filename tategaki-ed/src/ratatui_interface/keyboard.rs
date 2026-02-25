@@ -3,9 +3,9 @@
 #[cfg(feature = "ratatui")]
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::{Result, TategakiError};
-use crate::text_engine::TextDirection;
 use crate::spatial::SpatialPosition;
+use crate::text_engine::TextDirection;
+use crate::{Result, TategakiError};
 
 #[cfg(feature = "ratatui")]
 /// Keyboard input handler for terminal editor
@@ -155,7 +155,7 @@ pub enum KeyAction {
     // Movement actions
     MoveCursor(CursorMovement),
     ScrollView(ScrollDirection),
-    
+
     // Text editing actions
     InsertChar(char),
     InsertText(String),
@@ -163,39 +163,39 @@ pub enum KeyAction {
     DeleteBackward,
     InsertNewline,
     InsertTab,
-    
+
     // Selection actions
     StartSelection,
     ExtendSelection(CursorMovement),
     ClearSelection,
-    
+
     // Mode changes
     SwitchMode(EditingMode),
-    
+
     // Clipboard operations
     Cut,
     Copy,
     Paste,
-    
+
     // File operations
     Save,
     Quit,
     ForceQuit,
-    
+
     // Search operations
     Find(String),
     Replace(String, String),
-    
+
     // Settings toggles
     ToggleTextDirection,
     ToggleIME,
     ShowHelp,
-    
+
     // Special actions
     Undo,
     Redo,
     NoOp,
-    
+
     // Command mode
     ExecuteCommand(String),
 }
@@ -268,7 +268,7 @@ impl KeyboardHandler {
         if event.modifiers.contains(KeyModifiers::CONTROL) {
             return self.handle_ctrl_key(event.code);
         }
-        
+
         if event.modifiers.contains(KeyModifiers::ALT) {
             return self.handle_alt_key(event.code);
         }
@@ -313,18 +313,18 @@ impl KeyboardHandler {
     fn handle_normal_mode_key(&self, key: KeyCode, direction: TextDirection) -> Result<KeyAction> {
         match key {
             // Movement
-            k if k == self.bindings.movement.up => {
-                Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Up, direction)))
-            }
-            k if k == self.bindings.movement.down => {
-                Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Down, direction)))
-            }
-            k if k == self.bindings.movement.left => {
-                Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Left, direction)))
-            }
-            k if k == self.bindings.movement.right => {
-                Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Right, direction)))
-            }
+            k if k == self.bindings.movement.up => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Up, direction),
+            )),
+            k if k == self.bindings.movement.down => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Down, direction),
+            )),
+            k if k == self.bindings.movement.left => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Left, direction),
+            )),
+            k if k == self.bindings.movement.right => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Right, direction),
+            )),
             k if k == self.bindings.movement.word_left => {
                 Ok(KeyAction::MoveCursor(CursorMovement::WordLeft))
             }
@@ -356,12 +356,10 @@ impl KeyboardHandler {
             }
 
             // Functions
-            k if k == self.bindings.functions.quit => {
-                Ok(KeyAction::Quit)
-            }
+            k if k == self.bindings.functions.quit => Ok(KeyAction::Quit),
 
             KeyCode::Arrow(arrow) => self.handle_arrow_key(arrow, direction),
-            
+
             _ => Ok(KeyAction::NoOp),
         }
     }
@@ -373,18 +371,10 @@ impl KeyboardHandler {
                 Ok(KeyAction::SwitchMode(EditingMode::Normal))
             }
             KeyCode::Char(ch) => Ok(KeyAction::InsertChar(ch)),
-            k if k == self.bindings.editing.backspace => {
-                Ok(KeyAction::DeleteBackward)
-            }
-            k if k == self.bindings.editing.delete => {
-                Ok(KeyAction::DeleteChar)
-            }
-            k if k == self.bindings.editing.new_line => {
-                Ok(KeyAction::InsertNewline)
-            }
-            k if k == self.bindings.editing.tab => {
-                Ok(KeyAction::InsertTab)
-            }
+            k if k == self.bindings.editing.backspace => Ok(KeyAction::DeleteBackward),
+            k if k == self.bindings.editing.delete => Ok(KeyAction::DeleteChar),
+            k if k == self.bindings.editing.new_line => Ok(KeyAction::InsertNewline),
+            k if k == self.bindings.editing.tab => Ok(KeyAction::InsertTab),
             KeyCode::Arrow(arrow) => self.handle_arrow_key_insert(arrow),
             _ => Ok(KeyAction::NoOp),
         }
@@ -397,25 +387,21 @@ impl KeyboardHandler {
                 Ok(KeyAction::SwitchMode(EditingMode::Normal))
             }
             // Movement keys extend selection
-            k if k == self.bindings.movement.up => {
-                Ok(KeyAction::ExtendSelection(self.map_movement_to_direction(CursorMovement::Up, direction)))
-            }
-            k if k == self.bindings.movement.down => {
-                Ok(KeyAction::ExtendSelection(self.map_movement_to_direction(CursorMovement::Down, direction)))
-            }
-            k if k == self.bindings.movement.left => {
-                Ok(KeyAction::ExtendSelection(self.map_movement_to_direction(CursorMovement::Left, direction)))
-            }
-            k if k == self.bindings.movement.right => {
-                Ok(KeyAction::ExtendSelection(self.map_movement_to_direction(CursorMovement::Right, direction)))
-            }
+            k if k == self.bindings.movement.up => Ok(KeyAction::ExtendSelection(
+                self.map_movement_to_direction(CursorMovement::Up, direction),
+            )),
+            k if k == self.bindings.movement.down => Ok(KeyAction::ExtendSelection(
+                self.map_movement_to_direction(CursorMovement::Down, direction),
+            )),
+            k if k == self.bindings.movement.left => Ok(KeyAction::ExtendSelection(
+                self.map_movement_to_direction(CursorMovement::Left, direction),
+            )),
+            k if k == self.bindings.movement.right => Ok(KeyAction::ExtendSelection(
+                self.map_movement_to_direction(CursorMovement::Right, direction),
+            )),
             // Copy/cut selected text
-            k if k == self.bindings.editing.copy => {
-                Ok(KeyAction::Copy)
-            }
-            k if k == self.bindings.editing.cut => {
-                Ok(KeyAction::Cut)
-            }
+            k if k == self.bindings.editing.copy => Ok(KeyAction::Copy),
+            k if k == self.bindings.editing.cut => Ok(KeyAction::Cut),
             _ => Ok(KeyAction::NoOp),
         }
     }
@@ -439,12 +425,24 @@ impl KeyboardHandler {
     }
 
     /// Handle arrow keys
-    fn handle_arrow_key(&self, arrow: crossterm::event::KeyCode, direction: TextDirection) -> Result<KeyAction> {
+    fn handle_arrow_key(
+        &self,
+        arrow: crossterm::event::KeyCode,
+        direction: TextDirection,
+    ) -> Result<KeyAction> {
         match arrow {
-            KeyCode::Up => Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Up, direction))),
-            KeyCode::Down => Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Down, direction))),
-            KeyCode::Left => Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Left, direction))),
-            KeyCode::Right => Ok(KeyAction::MoveCursor(self.map_movement_to_direction(CursorMovement::Right, direction))),
+            KeyCode::Up => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Up, direction),
+            )),
+            KeyCode::Down => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Down, direction),
+            )),
+            KeyCode::Left => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Left, direction),
+            )),
+            KeyCode::Right => Ok(KeyAction::MoveCursor(
+                self.map_movement_to_direction(CursorMovement::Right, direction),
+            )),
             _ => Ok(KeyAction::NoOp),
         }
     }
@@ -462,14 +460,18 @@ impl KeyboardHandler {
     }
 
     /// Map movement direction based on text direction
-    fn map_movement_to_direction(&self, movement: CursorMovement, text_direction: TextDirection) -> CursorMovement {
+    fn map_movement_to_direction(
+        &self,
+        movement: CursorMovement,
+        text_direction: TextDirection,
+    ) -> CursorMovement {
         match text_direction {
             TextDirection::VerticalTopToBottom => {
                 // In vertical text, up/down stay the same, left/right are swapped for columns
                 match movement {
                     CursorMovement::Left => CursorMovement::Right, // Move to next column (visually left)
                     CursorMovement::Right => CursorMovement::Left, // Move to prev column (visually right)
-                    other => other, // Up/Down unchanged
+                    other => other,                                // Up/Down unchanged
                 }
             }
             TextDirection::HorizontalLeftToRight => movement, // No mapping needed
@@ -494,7 +496,7 @@ impl KeyboardHandler {
     /// Get key binding description for help
     pub fn get_key_help(&self, mode: EditingMode) -> Vec<(String, String)> {
         let mut help = Vec::new();
-        
+
         match mode {
             EditingMode::Normal => {
                 help.push(("h/j/k/l".to_string(), "Move cursor".to_string()));
@@ -520,7 +522,7 @@ impl KeyboardHandler {
                 help.push(("w".to_string(), "Save".to_string()));
             }
         }
-        
+
         help
     }
 }

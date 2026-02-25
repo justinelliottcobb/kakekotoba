@@ -1,7 +1,7 @@
 //! Japanese character classification and analysis
 
-use unicode_categories::UnicodeCategories;
 use crate::error::Result;
+use unicode_categories::UnicodeCategories;
 
 /// Classifies Japanese characters for programming language analysis
 pub struct CharacterClassifier {
@@ -17,10 +17,10 @@ impl CharacterClassifier {
     /// Classify all characters in a text string
     pub fn classify_text(&self, text: &str) -> Result<CharacterAnalysis> {
         let mut analysis = CharacterAnalysis::default();
-        
+
         for c in text.chars() {
             analysis.total_chars += 1;
-            
+
             let classification = self.classify_char(c);
             match classification {
                 CharacterClass::Kanji => {
@@ -53,7 +53,7 @@ impl CharacterClassifier {
                 }
             }
         }
-        
+
         Ok(analysis)
     }
 
@@ -62,42 +62,40 @@ impl CharacterClassifier {
         match c {
             // Hiragana block
             '\u{3040}'..='\u{309F}' => CharacterClass::Hiragana,
-            
+
             // Katakana block
             '\u{30A0}'..='\u{30FF}' => CharacterClass::Katakana,
-            
+
             // Halfwidth Katakana
             '\u{FF65}'..='\u{FF9F}' => CharacterClass::Katakana,
-            
+
             // CJK Unified Ideographs (main Kanji block)
             '\u{4E00}'..='\u{9FAF}' => CharacterClass::Kanji,
-            
+
             // CJK Extension A
             '\u{3400}'..='\u{4DBF}' => CharacterClass::Kanji,
-            
+
             // CJK Extension B, C, D (less common)
-            '\u{20000}'..='\u{2A6DF}' |
-            '\u{2A700}'..='\u{2B73F}' |
-            '\u{2B740}'..='\u{2B81F}' => CharacterClass::Kanji,
-            
+            '\u{20000}'..='\u{2A6DF}' | '\u{2A700}'..='\u{2B73F}' | '\u{2B740}'..='\u{2B81F}' => {
+                CharacterClass::Kanji
+            }
+
             // Japanese punctuation
-            '、' | '。' | '「' | '」' | '『' | '』' | '（' | '）' |
-            '［' | '］' | '｛' | '｝' | '〈' | '〉' | '《' | '》' |
-            '〔' | '〕' | '〖' | '〗' | '〘' | '〙' | '〚' | '〛' |
-            '・' | '：' | '；' | '？' | '！' => CharacterClass::JapanesePunctuation,
-            
+            '、' | '。' | '「' | '」' | '『' | '』' | '（' | '）' | '［' | '］' | '｛' | '｝'
+            | '〈' | '〉' | '《' | '》' | '〔' | '〕' | '〖' | '〗' | '〘' | '〙' | '〚' | '〛'
+            | '・' | '：' | '；' | '？' | '！' => CharacterClass::JapanesePunctuation,
+
             // ASCII alphanumeric
             'A'..='Z' | 'a'..='z' | '0'..='9' => CharacterClass::Ascii,
-            
+
             // ASCII punctuation
-            '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' |
-            '+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' | '=' | '>' |
-            '?' | '@' | '[' | '\\' | ']' | '^' | '_' | '`' | '{' | '|' |
-            '}' | '~' => CharacterClass::AsciiPunctuation,
-            
+            '!' | '"' | '#' | '$' | '%' | '&' | '\'' | '(' | ')' | '*' | '+' | ',' | '-' | '.'
+            | '/' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '[' | '\\' | ']' | '^' | '_'
+            | '`' | '{' | '|' | '}' | '~' => CharacterClass::AsciiPunctuation,
+
             // Whitespace
             c if c.is_whitespace() => CharacterClass::Whitespace,
-            
+
             // Everything else
             _ => CharacterClass::Other,
         }
@@ -106,17 +104,17 @@ impl CharacterClassifier {
     /// Determine the primary script used in text
     pub fn primary_script(&self, text: &str) -> JapaneseScript {
         let analysis = self.classify_text(text).unwrap_or_default();
-        
+
         if analysis.total_chars == 0 {
             return JapaneseScript::Other;
         }
-        
+
         // Find the most common script
         let kanji_ratio = analysis.kanji_count as f64 / analysis.total_chars as f64;
         let hiragana_ratio = analysis.hiragana_count as f64 / analysis.total_chars as f64;
         let katakana_ratio = analysis.katakana_count as f64 / analysis.total_chars as f64;
         let ascii_ratio = analysis.ascii_count as f64 / analysis.total_chars as f64;
-        
+
         if kanji_ratio > 0.4 {
             JapaneseScript::Kanji
         } else if hiragana_ratio > 0.4 {
@@ -132,11 +130,12 @@ impl CharacterClassifier {
 
     /// Check if a character can start an identifier in Kakekotoba
     pub fn can_start_identifier(&self, c: char) -> bool {
-        matches!(self.classify_char(c),
-            CharacterClass::Kanji |
-            CharacterClass::Hiragana |
-            CharacterClass::Katakana |
-            CharacterClass::Ascii
+        matches!(
+            self.classify_char(c),
+            CharacterClass::Kanji
+                | CharacterClass::Hiragana
+                | CharacterClass::Katakana
+                | CharacterClass::Ascii
         ) && c != '_' // Underscore might be reserved
     }
 
@@ -147,14 +146,15 @@ impl CharacterClassifier {
 
     /// Check if a character is a valid operator character
     pub fn is_operator_char(&self, c: char) -> bool {
-        matches!(c,
+        matches!(
+            c,
             '+' | '-' | '*' | '/' | '%' |
             '=' | '<' | '>' | '!' |
             '&' | '|' | '^' | '~' |
             '.' | ',' | ';' | ':' |
             '→' | '←' | '↑' | '↓' |  // Japanese arrows
             '∧' | '∨' | '¬' |       // Logic symbols
-            '∈' | '∉' | '⊂' | '⊃'   // Set theory symbols
+            '∈' | '∉' | '⊂' | '⊃' // Set theory symbols
         )
     }
 
@@ -251,8 +251,9 @@ impl CharacterAnalysis {
             (self.whitespace_count, CharacterClass::Whitespace),
             (self.other_count, CharacterClass::Other),
         ];
-        
-        counts.iter()
+
+        counts
+            .iter()
             .max_by_key(|(count, _)| *count)
             .map(|(_, class)| *class)
             .unwrap_or(CharacterClass::Other)
@@ -277,31 +278,31 @@ pub struct CharacterRanges;
 impl CharacterRanges {
     /// All hiragana characters
     pub const HIRAGANA: std::ops::RangeInclusive<char> = '\u{3040}'..='\u{309F}';
-    
+
     /// All katakana characters
     pub const KATAKANA: std::ops::RangeInclusive<char> = '\u{30A0}'..='\u{30FF}';
-    
+
     /// Main kanji block
     pub const KANJI_MAIN: std::ops::RangeInclusive<char> = '\u{4E00}'..='\u{9FAF}';
-    
+
     /// Kanji extension A
     pub const KANJI_EXT_A: std::ops::RangeInclusive<char> = '\u{3400}'..='\u{4DBF}';
-    
+
     /// Check if character is in any kanji range
     pub fn is_kanji(c: char) -> bool {
         Self::KANJI_MAIN.contains(&c) || Self::KANJI_EXT_A.contains(&c)
     }
-    
+
     /// Check if character is hiragana
     pub fn is_hiragana(c: char) -> bool {
         Self::HIRAGANA.contains(&c)
     }
-    
+
     /// Check if character is katakana
     pub fn is_katakana(c: char) -> bool {
         Self::KATAKANA.contains(&c)
     }
-    
+
     /// Check if character is any Japanese script
     pub fn is_japanese(c: char) -> bool {
         Self::is_kanji(c) || Self::is_hiragana(c) || Self::is_katakana(c)
@@ -315,21 +316,24 @@ mod tests {
     #[test]
     fn test_character_classifier() {
         let classifier = CharacterClassifier::new();
-        
+
         assert_eq!(classifier.classify_char('関'), CharacterClass::Kanji);
         assert_eq!(classifier.classify_char('あ'), CharacterClass::Hiragana);
         assert_eq!(classifier.classify_char('ア'), CharacterClass::Katakana);
         assert_eq!(classifier.classify_char('a'), CharacterClass::Ascii);
         assert_eq!(classifier.classify_char('1'), CharacterClass::Ascii);
         assert_eq!(classifier.classify_char(' '), CharacterClass::Whitespace);
-        assert_eq!(classifier.classify_char('、'), CharacterClass::JapanesePunctuation);
+        assert_eq!(
+            classifier.classify_char('、'),
+            CharacterClass::JapanesePunctuation
+        );
     }
 
     #[test]
     fn test_text_analysis() {
         let classifier = CharacterClassifier::new();
         let analysis = classifier.classify_text("関数あa").unwrap();
-        
+
         assert_eq!(analysis.total_chars, 3);
         assert_eq!(analysis.kanji_count, 1);
         assert_eq!(analysis.hiragana_count, 1);
@@ -341,25 +345,34 @@ mod tests {
     #[test]
     fn test_primary_script() {
         let classifier = CharacterClassifier::new();
-        
+
         assert_eq!(classifier.primary_script("関数漢字"), JapaneseScript::Kanji);
-        assert_eq!(classifier.primary_script("あいうえお"), JapaneseScript::Hiragana);
-        assert_eq!(classifier.primary_script("アイウエオ"), JapaneseScript::Katakana);
-        assert_eq!(classifier.primary_script("hello world"), JapaneseScript::Ascii);
+        assert_eq!(
+            classifier.primary_script("あいうえお"),
+            JapaneseScript::Hiragana
+        );
+        assert_eq!(
+            classifier.primary_script("アイウエオ"),
+            JapaneseScript::Katakana
+        );
+        assert_eq!(
+            classifier.primary_script("hello world"),
+            JapaneseScript::Ascii
+        );
         assert_eq!(classifier.primary_script("関数a"), JapaneseScript::Mixed);
     }
 
     #[test]
     fn test_identifier_rules() {
         let classifier = CharacterClassifier::new();
-        
+
         assert!(classifier.can_start_identifier('関'));
         assert!(classifier.can_start_identifier('あ'));
         assert!(classifier.can_start_identifier('ア'));
         assert!(classifier.can_start_identifier('a'));
         assert!(!classifier.can_start_identifier('1'));
         assert!(!classifier.can_start_identifier(' '));
-        
+
         assert!(classifier.can_continue_identifier('1'));
         assert!(classifier.can_continue_identifier('関'));
     }
@@ -367,7 +380,7 @@ mod tests {
     #[test]
     fn test_operator_chars() {
         let classifier = CharacterClassifier::new();
-        
+
         assert!(classifier.is_operator_char('+'));
         assert!(classifier.is_operator_char('='));
         assert!(classifier.is_operator_char('→'));
@@ -379,7 +392,7 @@ mod tests {
     fn test_char_info() {
         let classifier = CharacterClassifier::new();
         let info = classifier.char_info('関');
-        
+
         assert_eq!(info.character, '関');
         assert_eq!(info.classification, CharacterClass::Kanji);
         assert!(info.can_start_identifier);
@@ -392,13 +405,13 @@ mod tests {
     fn test_character_ranges() {
         assert!(CharacterRanges::is_kanji('関'));
         assert!(!CharacterRanges::is_kanji('あ'));
-        
+
         assert!(CharacterRanges::is_hiragana('あ'));
         assert!(!CharacterRanges::is_hiragana('ア'));
-        
+
         assert!(CharacterRanges::is_katakana('ア'));
         assert!(!CharacterRanges::is_katakana('関'));
-        
+
         assert!(CharacterRanges::is_japanese('関'));
         assert!(CharacterRanges::is_japanese('あ'));
         assert!(CharacterRanges::is_japanese('ア'));
@@ -411,7 +424,7 @@ mod tests {
         analysis.kanji_count = 5;
         analysis.hiragana_count = 2;
         analysis.ascii_count = 1;
-        
+
         assert_eq!(analysis.primary_class(), CharacterClass::Kanji);
     }
 }

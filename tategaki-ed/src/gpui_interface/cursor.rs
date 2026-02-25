@@ -1,10 +1,10 @@
 //! Cursor management for GPUI interface
 
+use crate::spatial::SpatialPosition;
+use crate::text_engine::LayoutEngine;
+use crate::{Result, TategakiError};
 #[cfg(feature = "gpui")]
 use gpui::*;
-use crate::{Result, TategakiError};
-use crate::text_engine::LayoutEngine;
-use crate::spatial::SpatialPosition;
 
 #[cfg(feature = "gpui")]
 /// Spatial cursor for vertical text editing

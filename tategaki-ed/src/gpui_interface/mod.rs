@@ -3,34 +3,34 @@
 //! This module provides a rich graphical editor interface using GPUI with advanced
 //! rendering capabilities for vertical Japanese text and spatial programming features.
 
+use crate::japanese::JapaneseInputMethod;
+use crate::spatial::{CoordinateSystem, SpatialPosition};
+use crate::text_engine::{LayoutEngine, TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 #[cfg(feature = "gpui")]
 use gpui::*;
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
-use crate::spatial::{SpatialPosition, CoordinateSystem};
-use crate::japanese::JapaneseInputMethod;
 
+#[cfg(feature = "gpui")]
+pub mod cursor;
 #[cfg(feature = "gpui")]
 pub mod editor;
 #[cfg(feature = "gpui")]
 pub mod renderer;
 #[cfg(feature = "gpui")]
-pub mod cursor;
+pub mod scroll;
 #[cfg(feature = "gpui")]
 pub mod selection;
-#[cfg(feature = "gpui")]
-pub mod scroll;
 
+#[cfg(feature = "gpui")]
+pub use cursor::*;
 #[cfg(feature = "gpui")]
 pub use editor::*;
 #[cfg(feature = "gpui")]
 pub use renderer::*;
 #[cfg(feature = "gpui")]
-pub use cursor::*;
+pub use scroll::*;
 #[cfg(feature = "gpui")]
 pub use selection::*;
-#[cfg(feature = "gpui")]
-pub use scroll::*;
 
 #[cfg(feature = "gpui")]
 /// Main graphical vertical editor component
@@ -228,48 +228,44 @@ impl GraphicalVerticalEditor {
     /// Handle mouse events for positioning and selection
     pub fn handle_mouse_event(&mut self, event: &MouseDownEvent) -> Result<bool> {
         let click_position = event.position;
-        
+
         // Convert screen coordinates to logical position
-        if let Ok(logical_pos) = self.layout_engine.visual_to_logical(
-            click_position.x.0,
-            click_position.y.0,
-        ) {
+        if let Ok(logical_pos) = self
+            .layout_engine
+            .visual_to_logical(click_position.x.0, click_position.y.0)
+        {
             self.cursor.set_position(logical_pos);
-            
+
             // Handle selection if shift is held
             if event.modifiers.shift {
                 self.selection.extend_to_position(logical_pos);
             } else {
                 self.selection.clear();
             }
-            
+
             return Ok(true);
         }
-        
+
         Ok(false)
     }
 
     /// Render the editor
     pub fn render(&mut self, cx: &mut WindowContext) -> impl IntoElement {
-        div()
-            .size_full()
-            .bg(gpui::black())
-            .child(
-                canvas(
-                    move |bounds, cx| {
-                        self.viewport_size = bounds.size;
-                        self.render_text(bounds, cx);
-                        self.render_cursor(bounds, cx);
-                        self.render_selection(bounds, cx);
-                    },
-                    |_, _, _| {},
-                )
-            )
+        div().size_full().bg(gpui::black()).child(canvas(
+            move |bounds, cx| {
+                self.viewport_size = bounds.size;
+                self.render_text(bounds, cx);
+                self.render_cursor(bounds, cx);
+                self.render_selection(bounds, cx);
+            },
+            |_, _, _| {},
+        ))
     }
 
     /// Render text content
     fn render_text(&mut self, bounds: Bounds<Pixels>, cx: &mut WindowContext) {
-        self.renderer.render_buffer(&self.buffer, bounds, cx, &self.layout_engine);
+        self.renderer
+            .render_buffer(&self.buffer, bounds, cx, &self.layout_engine);
     }
 
     /// Render cursor
@@ -298,7 +294,9 @@ impl GraphicalVerticalEditor {
     }
 
     pub fn load_text(&mut self, _text: &str) -> Result<()> {
-        Err(TategakiError::Rendering("GPUI feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "GPUI feature not enabled".to_string(),
+        ))
     }
 }
 

@@ -5,13 +5,10 @@
 
 use clap::{Arg, Command};
 use std::path::PathBuf;
-use tategaki_ed::{EditorConfig, TerminalVerticalEditor, Result, TategakiError, TextDirection};
+use tategaki_ed::{EditorConfig, Result, TategakiError, TerminalVerticalEditor, TextDirection};
 
 #[cfg(feature = "ratatui")]
-use ratatui::{
-    backend::CrosstermBackend,
-    Terminal,
-};
+use ratatui::{backend::CrosstermBackend, Terminal};
 
 #[cfg(feature = "ratatui")]
 use crossterm::{
@@ -33,7 +30,7 @@ fn main() -> Result<()> {
             Arg::new("file")
                 .help("File to open")
                 .value_name("FILE")
-                .index(1)
+                .index(1),
         )
         .arg(
             Arg::new("direction")
@@ -41,31 +38,31 @@ fn main() -> Result<()> {
                 .short('d')
                 .help("Text direction")
                 .value_parser(["vertical", "horizontal"])
-                .default_value("vertical")
+                .default_value("vertical"),
         )
         .arg(
             Arg::new("enable-ime")
                 .long("enable-ime")
                 .help("Enable Japanese IME")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("vim-mode")
                 .long("vim-mode")
                 .help("Enable Vim-like keybindings")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("debug")
                 .long("debug")
                 .help("Enable debug mode")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("no-mouse")
                 .long("no-mouse")
                 .help("Disable mouse support")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("theme")
@@ -73,7 +70,7 @@ fn main() -> Result<()> {
                 .short('t')
                 .help("Color theme")
                 .value_parser(["dark", "light", "high-contrast"])
-                .default_value("dark")
+                .default_value("dark"),
         )
         .get_matches();
 
@@ -121,10 +118,12 @@ fn main() -> Result<()> {
 
     #[cfg(not(feature = "ratatui"))]
     {
-        eprintln!("Error: Ratatui feature not enabled. This binary requires the 'ratatui' feature.");
+        eprintln!(
+            "Error: Ratatui feature not enabled. This binary requires the 'ratatui' feature."
+        );
         eprintln!("Build with: cargo build --features ratatui --bin tui");
         Err(TategakiError::Configuration(
-            "Ratatui feature not enabled".to_string()
+            "Ratatui feature not enabled".to_string(),
         ))
     }
 }
@@ -133,10 +132,10 @@ fn main() -> Result<()> {
 fn run_terminal_editor(config: EditorConfig, file_path: Option<PathBuf>) -> Result<()> {
     // Initialize terminal
     let mut terminal = setup_terminal()?;
-    
+
     // Create editor
     let mut editor = TerminalVerticalEditor::new(config);
-    
+
     // Load file if provided
     if let Some(path) = file_path {
         if path.exists() {
@@ -144,7 +143,11 @@ fn run_terminal_editor(config: EditorConfig, file_path: Option<PathBuf>) -> Resu
                 .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
             editor.load_text(&content)?;
             if editor.config.debug_mode {
-                eprintln!("Loaded {} characters from {}", content.len(), path.display());
+                eprintln!(
+                    "Loaded {} characters from {}",
+                    content.len(),
+                    path.display()
+                );
             }
         } else {
             if editor.config.debug_mode {
@@ -160,41 +163,45 @@ fn run_terminal_editor(config: EditorConfig, file_path: Option<PathBuf>) -> Resu
 
     // Run editor
     let result = editor.run(CrosstermBackend::new(io::stdout()));
-    
+
     // Cleanup terminal
     cleanup_terminal(&mut terminal)?;
-    
+
     result
 }
 
 #[cfg(feature = "ratatui")]
 fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
-    enable_raw_mode().map_err(|e| TategakiError::Terminal(format!("Failed to enable raw mode: {}", e)))?;
-    
+    enable_raw_mode()
+        .map_err(|e| TategakiError::Terminal(format!("Failed to enable raw mode: {}", e)))?;
+
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)
         .map_err(|e| TategakiError::Terminal(format!("Failed to setup terminal: {}", e)))?;
-    
+
     let backend = CrosstermBackend::new(stdout);
     let terminal = Terminal::new(backend)
         .map_err(|e| TategakiError::Terminal(format!("Failed to create terminal: {}", e)))?;
-    
+
     Ok(terminal)
 }
 
 #[cfg(feature = "ratatui")]
 fn cleanup_terminal(terminal: &mut Terminal<CrosstermBackend<Stdout>>) -> Result<()> {
-    disable_raw_mode().map_err(|e| TategakiError::Terminal(format!("Failed to disable raw mode: {}", e)))?;
-    
+    disable_raw_mode()
+        .map_err(|e| TategakiError::Terminal(format!("Failed to disable raw mode: {}", e)))?;
+
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
         DisableMouseCapture
-    ).map_err(|e| TategakiError::Terminal(format!("Failed to cleanup terminal: {}", e)))?;
-    
-    terminal.show_cursor()
+    )
+    .map_err(|e| TategakiError::Terminal(format!("Failed to cleanup terminal: {}", e)))?;
+
+    terminal
+        .show_cursor()
         .map_err(|e| TategakiError::Terminal(format!("Failed to show cursor: {}", e)))?;
-    
+
     Ok(())
 }
 
@@ -226,12 +233,12 @@ fn show_welcome_message() {
     println!("│                                                             │");
     println!("│ Press any key to start editing...                          │");
     println!("╰─────────────────────────────────────────────────────────────╯");
-    
+
     // Wait for key press
     #[cfg(feature = "ratatui")]
     {
         use crossterm::event::{self, Event, KeyCode};
-        
+
         enable_raw_mode().ok();
         while let Ok(Event::Key(key)) = event::read() {
             if matches!(key.code, KeyCode::Char(_) | KeyCode::Enter | KeyCode::Esc) {
@@ -239,7 +246,7 @@ fn show_welcome_message() {
             }
         }
         disable_raw_mode().ok();
-        
+
         // Clear the screen
         print!("\x1B[2J\x1B[1;1H");
     }
@@ -278,7 +285,10 @@ mod tests {
     fn test_theme_parsing() {
         assert_eq!(parse_theme("dark"), tategaki_ed::Theme::Dark);
         assert_eq!(parse_theme("light"), tategaki_ed::Theme::Light);
-        assert_eq!(parse_theme("high-contrast"), tategaki_ed::Theme::HighContrast);
+        assert_eq!(
+            parse_theme("high-contrast"),
+            tategaki_ed::Theme::HighContrast
+        );
         assert_eq!(parse_theme("invalid"), tategaki_ed::Theme::Dark); // Default fallback
     }
 
@@ -291,7 +301,7 @@ mod tests {
             debug_mode: false,
             ..EditorConfig::default()
         };
-        
+
         assert_eq!(config.text_direction, TextDirection::VerticalTopToBottom);
         assert!(config.enable_ime);
         assert!(config.vim_keybindings);

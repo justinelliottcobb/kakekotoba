@@ -202,13 +202,24 @@ pub enum Pattern {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum BinaryOp {
-    Add, Sub, Mul, Div, Mod,
-    Eq, Ne, Lt, Le, Gt, Ge,
-    And, Or,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    And,
+    Or,
     Compose, // Function composition
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UnaryOp {
-    Not, Neg,
+    Not,
+    Neg,
 }

@@ -3,19 +3,19 @@
 //! This module extends the standard AST with spatial positioning information,
 //! enabling vertical programming language features and preserving layout semantics.
 
-use crate::vertical::{Position2D, Span2D};
-use crate::layout::CodeLayout;
-use crate::ast::{Expression, Statement, Declaration, Type};
+use crate::ast::{Declaration, Expression, Statement, Type};
 use crate::error::Result;
-use serde::{Serialize, Deserialize};
+use crate::layout::CodeLayout;
+use crate::vertical::{Position2D, Span2D};
+use serde::{Deserialize, Serialize};
 
 pub mod nodes;
-pub mod visitor;
 pub mod transformer;
+pub mod visitor;
 
 pub use nodes::*;
-pub use visitor::*;
 pub use transformer::*;
+pub use visitor::*;
 
 /// Root node of a spatial AST
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,8 +57,7 @@ impl SpatialProgram {
     pub fn deepest_node_at(&self, pos: Position2D) -> Option<&SpatialNode> {
         let nodes = self.nodes_at_position(pos);
         // Return the node with the smallest span (deepest/most specific)
-        nodes.into_iter()
-            .min_by_key(|node| node.span.byte_length())
+        nodes.into_iter().min_by_key(|node| node.span.byte_length())
     }
 
     /// Get all nodes in a spatial range
@@ -116,7 +115,7 @@ impl SourceInfo {
     pub fn text_for_span(&self, span: &Span2D) -> Option<&str> {
         let start = span.start.byte_offset;
         let end = span.end.byte_offset;
-        
+
         if end <= self.source_text.len() {
             self.source_text.get(start..end)
         } else {
@@ -244,7 +243,8 @@ impl SpatialNode {
 
     /// Find child nodes at a specific indentation level
     pub fn children_at_level(&self, level: usize) -> Vec<&SpatialNode> {
-        self.children.iter()
+        self.children
+            .iter()
             .filter(|child| child.metadata.indentation_level == level)
             .collect()
     }
@@ -254,7 +254,9 @@ impl SpatialNode {
         if self.children.is_empty() {
             0
         } else {
-            1 + self.children.iter()
+            1 + self
+                .children
+                .iter()
                 .map(|child| child.depth())
                 .max()
                 .unwrap_or(0)
@@ -304,7 +306,7 @@ impl SpatialMetrics {
         let node_factor = (self.total_nodes as f64).ln() * 0.2;
         let indentation_factor = self.avg_indentation * 0.1;
         let density_factor = self.density * 0.4;
-        
+
         depth_factor + node_factor + indentation_factor + density_factor
     }
 }
@@ -319,7 +321,11 @@ pub enum SpatialValidationError {
     /// Overlapping sibling nodes
     OverlappingSiblings { node1_id: NodeId, node2_id: NodeId },
     /// Inconsistent indentation
-    InconsistentIndentation { node_id: NodeId, expected: usize, actual: usize },
+    InconsistentIndentation {
+        node_id: NodeId,
+        expected: usize,
+        actual: usize,
+    },
     /// Missing position information
     MissingPosition { node_id: NodeId },
 }
@@ -358,12 +364,19 @@ impl SpatialASTBuilder {
         program: crate::ast::Program,
         source_info: SourceInfo,
     ) -> Result<SpatialProgram> {
-        let layout = self.layout.take()
+        let layout = self
+            .layout
+            .take()
             .unwrap_or_else(|| CodeLayout::new(source_info.writing_direction));
 
         let spatial_root = self.build_node_from_program(&program)?;
 
-        Ok(SpatialProgram::new(program, spatial_root, layout, source_info))
+        Ok(SpatialProgram::new(
+            program,
+            spatial_root,
+            layout,
+            source_info,
+        ))
     }
 
     /// Build a spatial node from AST program (placeholder implementation)
@@ -371,7 +384,7 @@ impl SpatialASTBuilder {
         // Placeholder implementation
         // In practice, this would traverse the AST and create spatial nodes
         let root_span = Span2D::new(Position2D::origin(), Position2D::new(0, 0, 0));
-        
+
         Ok(SpatialNode::new(
             self.next_id(),
             root_span,
@@ -394,7 +407,9 @@ mod tests {
 
     #[test]
     fn test_spatial_program_creation() {
-        let program = crate::ast::Program { declarations: Vec::new() };
+        let program = crate::ast::Program {
+            declarations: Vec::new(),
+        };
         let root_span = Span2D::new(Position2D::origin(), Position2D::new(10, 10, 100));
         let spatial_root = SpatialNode::new(1, root_span, SpatialContent::Program, Vec::new());
         let layout = CodeLayout::new(WritingDirection::VerticalTbRl);
@@ -405,19 +420,22 @@ mod tests {
         );
 
         let spatial_program = SpatialProgram::new(program, spatial_root, layout, source_info);
-        
+
         assert!(spatial_program.source_info.file_path.is_some());
-        assert_eq!(spatial_program.source_info.writing_direction, WritingDirection::VerticalTbRl);
+        assert_eq!(
+            spatial_program.source_info.writing_direction,
+            WritingDirection::VerticalTbRl
+        );
     }
 
     #[test]
     fn test_spatial_node_operations() {
         let span = Span2D::new(Position2D::new(0, 0, 0), Position2D::new(5, 5, 25));
         let mut node = SpatialNode::new(1, span, SpatialContent::Program, Vec::new());
-        
+
         assert!(node.contains(Position2D::new(2, 2, 10)));
         assert!(!node.contains(Position2D::new(10, 10, 100)));
-        
+
         // Test reading order
         node.set_reading_order(0);
         assert_eq!(node.reading_order(), Some(0));
@@ -442,12 +460,10 @@ mod tests {
         let layout = CodeLayout::new(WritingDirection::VerticalTbRl);
         builder = builder.with_layout(layout);
 
-        let program = crate::ast::Program { declarations: Vec::new() };
-        let source_info = SourceInfo::new(
-            None,
-            "test".to_string(),
-            WritingDirection::VerticalTbRl,
-        );
+        let program = crate::ast::Program {
+            declarations: Vec::new(),
+        };
+        let source_info = SourceInfo::new(None, "test".to_string(), WritingDirection::VerticalTbRl);
 
         let spatial_program = builder.build_program(program, source_info).unwrap();
         assert_eq!(spatial_program.spatial_root.id, 1);

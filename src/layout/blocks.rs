@@ -1,7 +1,7 @@
 //! Code block detection for vertical layouts
 
-use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 use crate::error::Result;
+use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 use std::collections::HashMap;
 
 /// Represents a detected code block
@@ -40,11 +40,7 @@ pub enum BlockType {
 
 impl CodeBlock {
     /// Create a new code block
-    pub fn new(
-        span: Span2D,
-        indentation_level: usize,
-        block_type: BlockType,
-    ) -> Self {
+    pub fn new(span: Span2D, indentation_level: usize, block_type: BlockType) -> Self {
         Self {
             span,
             indentation_level,
@@ -143,11 +139,8 @@ impl BlockDetector {
             } else {
                 // Not in a specific block, create a generic block if indented
                 if token_indent > 0 {
-                    let mut builder = BlockBuilder::new(
-                        token.span.start,
-                        token_indent,
-                        BlockType::Generic,
-                    );
+                    let mut builder =
+                        BlockBuilder::new(token.span.start, token_indent, BlockType::Generic);
                     builder.add_token(token.clone());
                     current_block = Some(builder);
                 }
@@ -202,7 +195,7 @@ impl BlockDetector {
             }
 
             let block_idx = root_blocks.len();
-            
+
             if let Some(&parent_idx) = stack.last() {
                 // Add as child to parent
                 let parent = &mut root_blocks[parent_idx];
@@ -249,7 +242,7 @@ impl BlockBuilder {
     fn build(self) -> CodeBlock {
         let end_pos = self.end_position.unwrap_or(self.start_position);
         let span = Span2D::new(self.start_position, end_pos);
-        
+
         CodeBlock::new(span, self.indentation_level, self.block_type)
     }
 }
@@ -272,7 +265,7 @@ impl BlockStatistics {
     pub fn from_blocks(blocks: &[CodeBlock]) -> Self {
         let mut stats = Self::default();
         stats.total_blocks = blocks.len();
-        
+
         for block in blocks {
             match block.block_type {
                 BlockType::Function => stats.function_blocks += 1,
@@ -282,20 +275,18 @@ impl BlockStatistics {
                 BlockType::Generic => stats.generic_blocks += 1,
                 _ => {}
             }
-            
+
             let depth = block.nesting_depth();
             if depth > stats.max_nesting_depth {
                 stats.max_nesting_depth = depth;
             }
         }
-        
+
         if !blocks.is_empty() {
-            let total_size: usize = blocks.iter()
-                .map(|b| b.span.byte_length())
-                .sum();
+            let total_size: usize = blocks.iter().map(|b| b.span.byte_length()).sum();
             stats.average_block_size = total_size as f64 / blocks.len() as f64;
         }
-        
+
         stats
     }
 }
@@ -303,14 +294,14 @@ impl BlockStatistics {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vertical::{SpatialTokenKind, SpatialToken};
+    use crate::vertical::{SpatialToken, SpatialTokenKind};
 
     #[test]
     fn test_code_block_creation() {
         let start = Position2D::new(0, 0, 0);
         let end = Position2D::new(10, 5, 50);
         let span = Span2D::new(start, end);
-        
+
         let block = CodeBlock::new(span, 4, BlockType::Function);
         assert_eq!(block.indentation_level, 4);
         assert_eq!(block.block_type, BlockType::Function);
@@ -321,11 +312,17 @@ mod tests {
     #[test]
     fn test_block_detection() {
         let detector = BlockDetector::new(WritingDirection::VerticalTbRl);
-        
+
         // Test block start detection
-        assert_eq!(detector.detect_block_start("関数"), Some(BlockType::Function));
+        assert_eq!(
+            detector.detect_block_start("関数"),
+            Some(BlockType::Function)
+        );
         assert_eq!(detector.detect_block_start("型"), Some(BlockType::Type));
-        assert_eq!(detector.detect_block_start("もし"), Some(BlockType::Conditional));
+        assert_eq!(
+            detector.detect_block_start("もし"),
+            Some(BlockType::Conditional)
+        );
         assert_eq!(detector.detect_block_start("other"), None);
     }
 
@@ -343,7 +340,7 @@ mod tests {
                 BlockType::Generic,
             ),
         ];
-        
+
         let stats = BlockStatistics::from_blocks(&blocks);
         assert_eq!(stats.total_blocks, 2);
         assert_eq!(stats.function_blocks, 1);
@@ -358,15 +355,15 @@ mod tests {
             0,
             BlockType::Function,
         );
-        
+
         let child = CodeBlock::new(
             Span2D::new(Position2D::new(4, 1, 10), Position2D::new(10, 3, 80)),
             4,
             BlockType::Generic,
         );
-        
+
         parent.add_child(child, 1);
-        
+
         assert_eq!(parent.children.len(), 1);
         assert!(!parent.is_leaf());
         assert_eq!(parent.descendants().len(), 1);

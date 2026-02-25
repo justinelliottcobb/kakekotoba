@@ -1,11 +1,11 @@
 //! AST transformation utilities for spatial ASTs
 
-use super::{SpatialNode, SpatialContent, SpatialProgram, SpatialASTBuilder, SourceInfo};
 use super::visitor::{SpatialVisitor, SpatialVisitorMut};
+use super::{SourceInfo, SpatialASTBuilder, SpatialContent, SpatialNode, SpatialProgram};
 use crate::ast;
-use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
-use crate::layout::CodeLayout;
 use crate::error::Result;
+use crate::layout::CodeLayout;
+use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 
 /// Transforms regular ASTs to spatial ASTs
 pub struct SpatialTransformer {
@@ -34,7 +34,10 @@ impl SpatialTransformer {
     ) -> Result<SpatialProgram> {
         // Analyze layout from tokens
         let layout = CodeLayout::analyze(tokens)?;
-        self.builder = self.builder.with_layout(layout);
+
+        // Replace builder with updated version
+        let builder = std::mem::replace(&mut self.builder, SpatialASTBuilder::new());
+        self.builder = builder.with_layout(layout);
 
         // Create source info
         let source_info = SourceInfo::new(None, source_text, writing_direction);
@@ -49,15 +52,10 @@ impl SpatialTransformer {
         expr: &ast::Expression,
         span: Span2D,
     ) -> Result<SpatialNode> {
-        let spatial_expr = self.create_spatial_expression(expr, span)?;
+        let spatial_expr = self.create_spatial_expression(expr, span.clone())?;
         let content = SpatialContent::Expression(spatial_expr);
-        
-        Ok(SpatialNode::new(
-            self.next_id(),
-            span,
-            content,
-            Vec::new(),
-        ))
+
+        Ok(SpatialNode::new(self.next_id(), span, content, Vec::new()))
     }
 
     /// Transform a statement to spatial form
@@ -66,15 +64,10 @@ impl SpatialTransformer {
         stmt: &ast::Statement,
         span: Span2D,
     ) -> Result<SpatialNode> {
-        let spatial_stmt = self.create_spatial_statement(stmt, span)?;
+        let spatial_stmt = self.create_spatial_statement(stmt, span.clone())?;
         let content = SpatialContent::Statement(spatial_stmt);
-        
-        Ok(SpatialNode::new(
-            self.next_id(),
-            span,
-            content,
-            Vec::new(),
-        ))
+
+        Ok(SpatialNode::new(self.next_id(), span, content, Vec::new()))
     }
 
     /// Transform a declaration to spatial form
@@ -83,15 +76,10 @@ impl SpatialTransformer {
         decl: &ast::Declaration,
         span: Span2D,
     ) -> Result<SpatialNode> {
-        let spatial_decl = self.create_spatial_declaration(decl, span)?;
+        let spatial_decl = self.create_spatial_declaration(decl, span.clone())?;
         let content = SpatialContent::Declaration(spatial_decl);
-        
-        Ok(SpatialNode::new(
-            self.next_id(),
-            span,
-            content,
-            Vec::new(),
-        ))
+
+        Ok(SpatialNode::new(self.next_id(), span, content, Vec::new()))
     }
 
     /// Create spatial expression from regular expression
@@ -101,7 +89,7 @@ impl SpatialTransformer {
         _span: Span2D,
     ) -> Result<super::SpatialExpression> {
         let mut props = super::nodes::ExpressionSpatialProps::default();
-        
+
         // Set properties based on expression type
         match expr {
             ast::Expression::Binary { .. } => {
@@ -129,7 +117,7 @@ impl SpatialTransformer {
         _span: Span2D,
     ) -> Result<super::SpatialStatement> {
         let mut props = super::nodes::StatementSpatialProps::default();
-        
+
         // Set properties based on statement type
         match stmt {
             ast::Statement::Expression(_) => {
@@ -162,7 +150,7 @@ impl SpatialTransformer {
         _span: Span2D,
     ) -> Result<super::SpatialDeclaration> {
         let mut props = super::nodes::DeclarationSpatialProps::default();
-        
+
         // Set properties based on declaration type
         match decl {
             ast::Declaration::Function { .. } => {
@@ -213,13 +201,13 @@ impl SpatialOptimizer {
     /// Optimize a spatial AST program
     pub fn optimize_program(&mut self, program: &mut SpatialProgram) -> Result<usize> {
         self.optimizations_applied = 0;
-        
+
         // Apply various optimizations
         self.optimize_reading_order(&mut program.spatial_root);
         self.optimize_indentation(&mut program.spatial_root);
         self.optimize_spatial_layout(&mut program.spatial_root);
         self.compact_metadata(&mut program.spatial_root);
-        
+
         Ok(self.optimizations_applied)
     }
 
@@ -285,7 +273,10 @@ pub struct AnalysisResults {
 #[derive(Debug, Clone)]
 pub enum LayoutIssue {
     /// Excessive nesting depth
-    ExcessiveNesting { depth: usize, recommendation: String },
+    ExcessiveNesting {
+        depth: usize,
+        recommendation: String,
+    },
     /// Poor indentation consistency
     InconsistentIndentation { locations: Vec<Span2D> },
     /// Suboptimal reading flow
@@ -302,7 +293,9 @@ pub enum OptimizationRecommendation {
     /// Improve indentation consistency
     StandardizeIndentation { recommended_style: String },
     /// Reorganize for better vertical flow
-    ImproveFlow { suggested_reordering: Vec<super::NodeId> },
+    ImproveFlow {
+        suggested_reordering: Vec<super::NodeId>,
+    },
     /// Compact layout
     CompactLayout { compactable_regions: Vec<Span2D> },
 }
@@ -353,17 +346,17 @@ impl SpatialAnalyzer {
     fn generate_recommendations(&mut self) {
         // Generate recommendations based on analysis
         if self.analysis_results.complexity_score > 10.0 {
-            self.analysis_results.recommendations.push(
-                OptimizationRecommendation::ReduceNesting { target_depth: 3 }
-            );
+            self.analysis_results
+                .recommendations
+                .push(OptimizationRecommendation::ReduceNesting { target_depth: 3 });
         }
 
         if self.analysis_results.layout_efficiency < 0.6 {
-            self.analysis_results.recommendations.push(
-                OptimizationRecommendation::CompactLayout { 
-                    compactable_regions: Vec::new() 
-                }
-            );
+            self.analysis_results
+                .recommendations
+                .push(OptimizationRecommendation::CompactLayout {
+                    compactable_regions: Vec::new(),
+                });
         }
     }
 }
@@ -389,7 +382,10 @@ impl SpatialDeTransformer {
     }
 
     /// Extract regular expression from spatial expression
-    pub fn detransform_expression(&self, spatial_expr: &super::SpatialExpression) -> ast::Expression {
+    pub fn detransform_expression(
+        &self,
+        spatial_expr: &super::SpatialExpression,
+    ) -> ast::Expression {
         spatial_expr.expr.clone()
     }
 
@@ -399,7 +395,10 @@ impl SpatialDeTransformer {
     }
 
     /// Extract regular declaration from spatial declaration
-    pub fn detransform_declaration(&self, spatial_decl: &super::SpatialDeclaration) -> ast::Declaration {
+    pub fn detransform_declaration(
+        &self,
+        spatial_decl: &super::SpatialDeclaration,
+    ) -> ast::Declaration {
         spatial_decl.decl.clone()
     }
 }
@@ -416,7 +415,8 @@ pub mod transform_utils {
 
     /// Transform tokens to spatial positions
     pub fn tokens_to_positions(tokens: &[SpatialToken]) -> Vec<(Position2D, String)> {
-        tokens.iter()
+        tokens
+            .iter()
             .map(|token| (token.span.start, token.content.clone()))
             .collect()
     }
@@ -466,14 +466,19 @@ mod tests {
         let span = Span2D::new(Position2D::new(0, 0, 0), Position2D::new(2, 0, 2));
 
         let spatial_node = transformer.transform_expression(&expr, span).unwrap();
-        
+
         assert_eq!(spatial_node.span, span);
-        assert!(matches!(spatial_node.content, SpatialContent::Expression(_)));
+        assert!(matches!(
+            spatial_node.content,
+            SpatialContent::Expression(_)
+        ));
     }
 
     #[test]
     fn test_spatial_optimizer() {
-        let program = ast::Program { declarations: Vec::new() };
+        let program = ast::Program {
+            declarations: Vec::new(),
+        };
         let root_span = Span2D::new(Position2D::origin(), Position2D::new(10, 10, 100));
         let spatial_root = SpatialNode::new(1, root_span, SpatialContent::Program, Vec::new());
         let layout = CodeLayout::new(WritingDirection::VerticalTbRl);
@@ -482,14 +487,16 @@ mod tests {
 
         let mut optimizer = SpatialOptimizer::new();
         let optimizations = optimizer.optimize_program(&mut spatial_program).unwrap();
-        
+
         assert!(optimizations > 0);
         assert_eq!(optimizer.optimizations_applied(), optimizations);
     }
 
     #[test]
     fn test_spatial_analyzer() {
-        let program = ast::Program { declarations: Vec::new() };
+        let program = ast::Program {
+            declarations: Vec::new(),
+        };
         let root_span = Span2D::new(Position2D::origin(), Position2D::new(10, 10, 100));
         let spatial_root = SpatialNode::new(1, root_span, SpatialContent::Program, Vec::new());
         let layout = CodeLayout::new(WritingDirection::VerticalTbRl);
@@ -498,7 +505,7 @@ mod tests {
 
         let mut analyzer = SpatialAnalyzer::new();
         let results = analyzer.analyze_program(&spatial_program).unwrap();
-        
+
         assert!(results.complexity_score >= 0.0);
         assert!(results.layout_efficiency >= 0.0);
         assert!(results.reading_flow_quality >= 0.0);
@@ -507,30 +514,31 @@ mod tests {
     #[test]
     fn test_spatial_detransformer() {
         let detransformer = SpatialDeTransformer::new();
-        
-        let program = ast::Program { declarations: Vec::new() };
+
+        let program = ast::Program {
+            declarations: Vec::new(),
+        };
         let root_span = Span2D::new(Position2D::origin(), Position2D::new(10, 10, 100));
         let spatial_root = SpatialNode::new(1, root_span, SpatialContent::Program, Vec::new());
         let layout = CodeLayout::new(WritingDirection::VerticalTbRl);
         let source_info = SourceInfo::new(None, "test".to_string(), WritingDirection::VerticalTbRl);
-        let spatial_program = SpatialProgram::new(program.clone(), spatial_root, layout, source_info);
+        let spatial_program =
+            SpatialProgram::new(program.clone(), spatial_root, layout, source_info);
 
         let detransformed = detransformer.detransform_program(&spatial_program).unwrap();
-        
+
         // Should be the same as the original program
         assert_eq!(detransformed.declarations.len(), program.declarations.len());
     }
 
     #[test]
     fn test_transform_utils() {
-        let tokens = vec![
-            SpatialToken::new(
-                "test".to_string(),
-                Span2D::new(Position2D::new(0, 0, 0), Position2D::new(4, 0, 4)),
-                SpatialTokenKind::Ascii,
-                WritingDirection::VerticalTbRl,
-            ),
-        ];
+        let tokens = vec![SpatialToken::new(
+            "test".to_string(),
+            Span2D::new(Position2D::new(0, 0, 0), Position2D::new(4, 0, 4)),
+            SpatialTokenKind::Ascii,
+            WritingDirection::VerticalTbRl,
+        )];
 
         let positions = transform_utils::tokens_to_positions(&tokens);
         assert_eq!(positions.len(), 1);

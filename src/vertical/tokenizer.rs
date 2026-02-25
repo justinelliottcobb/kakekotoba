@@ -1,8 +1,8 @@
 //! Direction-aware tokenization for vertical text
 
-use unicode_segmentation::UnicodeSegmentation;
-use crate::error::Result;
 use super::{Position2D, Span2D, WritingDirection};
+use crate::error::Result;
+use unicode_segmentation::UnicodeSegmentation;
 
 /// A token with 2D positional information
 #[derive(Debug, Clone, PartialEq)]
@@ -62,7 +62,10 @@ impl SpatialToken {
 
     /// Check if this token is whitespace
     pub fn is_whitespace(&self) -> bool {
-        matches!(self.kind, SpatialTokenKind::Whitespace | SpatialTokenKind::LineBreak)
+        matches!(
+            self.kind,
+            SpatialTokenKind::Whitespace | SpatialTokenKind::LineBreak
+        )
     }
 }
 
@@ -82,7 +85,7 @@ impl VerticalTokenizer {
     /// Create a new vertical tokenizer
     pub fn new(text: &str, direction: WritingDirection) -> Self {
         let position_mapper = super::PositionMapper::new(text, direction);
-        
+
         Self {
             text: text.to_string(),
             position: 0,
@@ -94,32 +97,29 @@ impl VerticalTokenizer {
     /// Tokenize the entire input into spatial tokens
     pub fn tokenize(&mut self) -> Result<Vec<SpatialToken>> {
         let mut tokens = Vec::new();
-        
+
         for cluster in self.text.graphemes(true) {
             let start_pos = self.position_mapper.byte_to_2d(self.position);
-            let end_pos = self.position_mapper.byte_to_2d(self.position + cluster.len());
-            
+            let end_pos = self
+                .position_mapper
+                .byte_to_2d(self.position + cluster.len());
+
             let span = Span2D::new(start_pos, end_pos);
             let kind = self.classify_grapheme(cluster);
-            
-            let token = SpatialToken::new(
-                cluster.to_string(),
-                span,
-                kind,
-                self.direction,
-            );
-            
+
+            let token = SpatialToken::new(cluster.to_string(), span, kind, self.direction);
+
             tokens.push(token);
             self.position += cluster.len();
         }
-        
+
         Ok(tokens)
     }
 
     /// Classify a grapheme cluster into a token kind
     fn classify_grapheme(&self, cluster: &str) -> SpatialTokenKind {
         let first_char = cluster.chars().next().unwrap_or('\0');
-        
+
         match first_char {
             '\n' | '\r' => SpatialTokenKind::LineBreak,
             c if c.is_whitespace() => SpatialTokenKind::Whitespace,
@@ -174,7 +174,7 @@ impl SpatialTokenIterator {
     pub fn new(text: &str, direction: WritingDirection) -> Result<Self> {
         let mut tokenizer = VerticalTokenizer::new(text, direction);
         let tokens = tokenizer.tokenize()?;
-        
+
         Ok(Self {
             tokenizer,
             tokens,
@@ -206,14 +206,14 @@ mod tests {
         let start = Position2D::new(0, 0, 0);
         let end = Position2D::new(1, 0, 3);
         let span = Span2D::new(start, end);
-        
+
         let token = SpatialToken::new(
             "関".to_string(),
             span,
             SpatialTokenKind::Japanese,
             WritingDirection::VerticalTbRl,
         );
-        
+
         assert_eq!(token.content, "関");
         assert_eq!(token.kind, SpatialTokenKind::Japanese);
         assert!(!token.is_whitespace());
@@ -223,7 +223,7 @@ mod tests {
     fn test_vertical_tokenizer() {
         let mut tokenizer = VerticalTokenizer::new("関数", WritingDirection::VerticalTbRl);
         let tokens = tokenizer.tokenize().unwrap();
-        
+
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].content, "関");
         assert_eq!(tokens[1].content, "数");
@@ -244,7 +244,7 @@ mod tests {
     fn test_token_iterator() {
         let iter = SpatialTokenIterator::new("a関", WritingDirection::VerticalTbRl).unwrap();
         let tokens: Vec<_> = iter.collect();
-        
+
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0].content, "a");
         assert_eq!(tokens[1].content, "関");

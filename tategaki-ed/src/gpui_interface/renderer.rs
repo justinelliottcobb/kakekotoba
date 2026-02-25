@@ -1,10 +1,10 @@
 //! Text rendering engine for GPUI interface
 
+use crate::spatial::SpatialPosition;
+use crate::text_engine::{LayoutEngine, TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 #[cfg(feature = "gpui")]
 use gpui::*;
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
-use crate::spatial::SpatialPosition;
 
 #[cfg(feature = "gpui")]
 /// Vertical text renderer for GPUI
@@ -58,7 +58,7 @@ impl VerticalTextRenderer {
         layout_engine: &LayoutEngine,
     ) {
         let text_content = buffer.as_text();
-        
+
         match self.direction {
             TextDirection::VerticalTopToBottom => {
                 self.render_vertical_text(&text_content, bounds, cx, layout_engine);
@@ -80,18 +80,18 @@ impl VerticalTextRenderer {
         let lines: Vec<&str> = text.lines().collect();
         let char_width = self.font_size;
         let char_height = self.font_size * self.line_height;
-        
+
         // Start from right side of bounds
         let mut column_x = bounds.right() - char_width;
-        
+
         for line in lines {
             let mut char_y = bounds.top();
-            
+
             for ch in line.chars() {
                 if column_x < bounds.left() {
                     break; // Out of bounds
                 }
-                
+
                 // Render character at position
                 let char_bounds = Bounds {
                     origin: Point {
@@ -103,15 +103,15 @@ impl VerticalTextRenderer {
                         height: char_height,
                     },
                 };
-                
+
                 self.render_character(ch, char_bounds, cx);
                 char_y += char_height;
-                
+
                 if char_y >= bounds.bottom() {
                     break; // Out of bounds vertically
                 }
             }
-            
+
             column_x -= char_width * 1.2; // Move to next column with spacing
         }
     }
@@ -120,9 +120,9 @@ impl VerticalTextRenderer {
     fn render_horizontal_text(&self, text: &str, bounds: Bounds<Pixels>, cx: &mut WindowContext) {
         let lines: Vec<&str> = text.lines().collect();
         let line_height = self.font_size * self.line_height;
-        
+
         let mut line_y = bounds.top();
-        
+
         for line in lines {
             let line_bounds = Bounds {
                 origin: Point {
@@ -134,10 +134,10 @@ impl VerticalTextRenderer {
                     height: line_height,
                 },
             };
-            
+
             self.render_line(line, line_bounds, cx);
             line_y += line_height;
-            
+
             if line_y >= bounds.bottom() {
                 break; // Out of bounds
             }
@@ -168,7 +168,7 @@ impl VerticalTextRenderer {
     /// Render a single character (for vertical layout)
     fn render_character(&self, ch: char, bounds: Bounds<Pixels>, cx: &mut WindowContext) {
         let text = ch.to_string();
-        
+
         cx.paint_text(
             TextRun {
                 text: text.into(),
@@ -191,14 +191,12 @@ impl VerticalTextRenderer {
         // Simple measurement - in real implementation you'd use proper text metrics
         let char_count = text.chars().count();
         let line_count = text.lines().count().max(1);
-        
+
         match self.direction {
-            TextDirection::VerticalTopToBottom => {
-                Size {
-                    width: Pixels(self.font_size * line_count as f32 * 1.2),
-                    height: Pixels(self.font_size * self.line_height * char_count as f32),
-                }
-            }
+            TextDirection::VerticalTopToBottom => Size {
+                width: Pixels(self.font_size * line_count as f32 * 1.2),
+                height: Pixels(self.font_size * self.line_height * char_count as f32),
+            },
             TextDirection::HorizontalLeftToRight => {
                 Size {
                     width: Pixels(self.font_size * 0.6 * char_count as f32), // Approximate
@@ -229,7 +227,7 @@ impl VerticalTextRenderer {
     ) {
         // Render position indicator for debugging
         let debug_text = format!("({}, {})", position.row, position.column);
-        
+
         cx.paint_text(
             TextRun {
                 text: debug_text.into(),
@@ -270,6 +268,8 @@ impl VerticalTextRenderer {
         _cx: (),
         _layout_engine: &LayoutEngine,
     ) -> Result<()> {
-        Err(TategakiError::Rendering("GPUI feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "GPUI feature not enabled".to_string(),
+        ))
     }
 }

@@ -67,7 +67,11 @@ impl SpatialPosition {
     }
 
     /// Check if this position is before another in reading order
-    pub fn is_before(&self, other: &SpatialPosition, direction: crate::text_engine::TextDirection) -> bool {
+    pub fn is_before(
+        &self,
+        other: &SpatialPosition,
+        direction: crate::text_engine::TextDirection,
+    ) -> bool {
         match direction {
             crate::text_engine::TextDirection::VerticalTopToBottom => {
                 // In vertical Japanese: right-to-left columns, top-to-bottom within columns
@@ -90,7 +94,10 @@ impl SpatialPosition {
     }
 
     /// Get the next position in reading order
-    pub fn next_reading_position(&self, direction: crate::text_engine::TextDirection) -> SpatialPosition {
+    pub fn next_reading_position(
+        &self,
+        direction: crate::text_engine::TextDirection,
+    ) -> SpatialPosition {
         match direction {
             crate::text_engine::TextDirection::VerticalTopToBottom => {
                 // Move down within column, then to next column (left)
@@ -105,12 +112,19 @@ impl SpatialPosition {
     }
 
     /// Get the previous position in reading order
-    pub fn prev_reading_position(&self, direction: crate::text_engine::TextDirection) -> SpatialPosition {
+    pub fn prev_reading_position(
+        &self,
+        direction: crate::text_engine::TextDirection,
+    ) -> SpatialPosition {
         match direction {
             crate::text_engine::TextDirection::VerticalTopToBottom => {
                 // Move up within column, or to previous column (right) at bottom
                 if self.row > 0 {
-                    SpatialPosition::new(self.column, self.row - 1, self.byte_offset.saturating_sub(1))
+                    SpatialPosition::new(
+                        self.column,
+                        self.row - 1,
+                        self.byte_offset.saturating_sub(1),
+                    )
                 } else {
                     SpatialPosition::new(self.column + 1, 0, self.byte_offset.saturating_sub(1))
                 }
@@ -118,16 +132,20 @@ impl SpatialPosition {
             crate::text_engine::TextDirection::HorizontalLeftToRight => {
                 // Move left within row, or to previous row at end
                 if self.column > 0 {
-                    SpatialPosition::new(self.column - 1, self.row, self.byte_offset.saturating_sub(1))
+                    SpatialPosition::new(
+                        self.column - 1,
+                        self.row,
+                        self.byte_offset.saturating_sub(1),
+                    )
                 } else {
-                    SpatialPosition::new(0, self.row.saturating_sub(1), self.byte_offset.saturating_sub(1))
+                    SpatialPosition::new(
+                        0,
+                        self.row.saturating_sub(1),
+                        self.byte_offset.saturating_sub(1),
+                    )
                 }
             }
-            _ => SpatialPosition::new(
-                self.column,
-                self.row,
-                self.byte_offset.saturating_sub(1)
-            ),
+            _ => SpatialPosition::new(self.column, self.row, self.byte_offset.saturating_sub(1)),
         }
     }
 }
@@ -205,7 +223,10 @@ impl CoordinateSystem {
                 let y = (pos.row as f32) * self.scale.line_height;
                 (x, y)
             }
-            _ => ((pos.column as f32) * self.scale.char_width, (pos.row as f32) * self.scale.line_height),
+            _ => (
+                (pos.column as f32) * self.scale.char_width,
+                (pos.row as f32) * self.scale.line_height,
+            ),
         }
     }
 
@@ -287,7 +308,8 @@ impl SpatialRange {
         if pos < self.start {
             self.start = pos;
         } else if pos >= self.end {
-            self.end = pos.next_reading_position(crate::text_engine::TextDirection::VerticalTopToBottom);
+            self.end =
+                pos.next_reading_position(crate::text_engine::TextDirection::VerticalTopToBottom);
         }
     }
 
@@ -295,12 +317,12 @@ impl SpatialRange {
     pub fn positions(&self, direction: crate::text_engine::TextDirection) -> Vec<SpatialPosition> {
         let mut positions = Vec::new();
         let mut current = self.start;
-        
+
         while current < self.end {
             positions.push(current);
             current = current.next_reading_position(direction);
         }
-        
+
         positions
     }
 }
@@ -317,7 +339,7 @@ impl SpatialTransform {
     ) -> SpatialPosition {
         // Convert to screen coordinates in source system
         let (x, y) = from_system.spatial_to_screen(pos);
-        
+
         // Convert from screen coordinates in target system
         to_system.screen_to_spatial(x, y)
     }
@@ -336,25 +358,35 @@ impl SpatialTransform {
             .map(|pos| coord_system.spatial_to_screen(pos))
             .collect();
 
-        let min_x = screen_coords.iter().map(|(x, _)| *x).fold(f32::INFINITY, f32::min);
-        let max_x = screen_coords.iter().map(|(x, _)| *x).fold(f32::NEG_INFINITY, f32::max);
-        let min_y = screen_coords.iter().map(|(_, y)| *y).fold(f32::INFINITY, f32::min);
-        let max_y = screen_coords.iter().map(|(_, y)| *y).fold(f32::NEG_INFINITY, f32::max);
+        let min_x = screen_coords
+            .iter()
+            .map(|(x, _)| *x)
+            .fold(f32::INFINITY, f32::min);
+        let max_x = screen_coords
+            .iter()
+            .map(|(x, _)| *x)
+            .fold(f32::NEG_INFINITY, f32::max);
+        let min_y = screen_coords
+            .iter()
+            .map(|(_, y)| *y)
+            .fold(f32::INFINITY, f32::min);
+        let max_y = screen_coords
+            .iter()
+            .map(|(_, y)| *y)
+            .fold(f32::NEG_INFINITY, f32::max);
 
         ((min_x, min_y), (max_x, max_y))
     }
 
     /// Snap position to character grid
-    pub fn snap_to_grid(
-        pos: &SpatialPosition,
-        coord_system: &CoordinateSystem,
-    ) -> SpatialPosition {
+    pub fn snap_to_grid(pos: &SpatialPosition, coord_system: &CoordinateSystem) -> SpatialPosition {
         let (x, y) = coord_system.spatial_to_screen(pos);
-        
+
         // Round to nearest character position
         let snapped_x = (x / coord_system.scale.char_width).round() * coord_system.scale.char_width;
-        let snapped_y = (y / coord_system.scale.line_height).round() * coord_system.scale.line_height;
-        
+        let snapped_y =
+            (y / coord_system.scale.line_height).round() * coord_system.scale.line_height;
+
         coord_system.screen_to_spatial(snapped_x, snapped_y)
     }
 }
@@ -376,18 +408,21 @@ mod tests {
         let mut pos = SpatialPosition::new(5, 10, 100);
         pos.move_vertical(3);
         assert_eq!(pos.row, 13);
-        
+
         pos.move_horizontal(-2);
         assert_eq!(pos.column, 3);
     }
 
     #[test]
     fn test_reading_order_vertical() {
-        let pos1 = SpatialPosition::new(1, 0, 0);  // Column 1, Row 0
-        let pos2 = SpatialPosition::new(0, 0, 0);  // Column 0, Row 0
-        
+        let pos1 = SpatialPosition::new(1, 0, 0); // Column 1, Row 0
+        let pos2 = SpatialPosition::new(0, 0, 0); // Column 0, Row 0
+
         // In vertical text, higher column (further right) comes first
-        assert!(pos1.is_before(&pos2, crate::text_engine::TextDirection::VerticalTopToBottom));
+        assert!(pos1.is_before(
+            &pos2,
+            crate::text_engine::TextDirection::VerticalTopToBottom
+        ));
     }
 
     #[test]
@@ -395,22 +430,23 @@ mod tests {
         let start = SpatialPosition::new(0, 0, 0);
         let end = SpatialPosition::new(5, 5, 25);
         let range = SpatialRange::new(start, end);
-        
+
         assert_eq!(range.char_length(), 25);
         assert!(!range.is_empty());
-        
+
         let test_pos = SpatialPosition::new(2, 2, 12);
         assert!(range.contains(&test_pos));
     }
 
     #[test]
     fn test_coordinate_system() {
-        let coord_system = CoordinateSystem::new(crate::text_engine::TextDirection::VerticalTopToBottom);
+        let coord_system =
+            CoordinateSystem::new(crate::text_engine::TextDirection::VerticalTopToBottom);
         let pos = SpatialPosition::new(1, 2, 0);
-        
+
         let (x, y) = coord_system.spatial_to_screen(&pos);
         let back = coord_system.screen_to_spatial(x, y);
-        
+
         assert_eq!(pos.column, back.column);
         assert_eq!(pos.row, back.row);
     }
@@ -419,7 +455,7 @@ mod tests {
     fn test_distance_calculation() {
         let pos1 = SpatialPosition::new(0, 0, 0);
         let pos2 = SpatialPosition::new(3, 4, 0);
-        
+
         let distance = pos1.distance_to(&pos2);
         assert_eq!(distance, 5.0); // 3-4-5 triangle
     }

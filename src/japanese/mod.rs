@@ -3,16 +3,16 @@
 //! This module provides specialized handling for Japanese text in programming contexts,
 //! including character classification, keyword detection, and linguistic analysis.
 
-use unicode_categories::UnicodeCategories;
-use unicode_normalization::{UnicodeNormalization, is_nfc};
 use crate::error::Result;
+use unicode_categories::UnicodeCategories;
+use unicode_normalization::{is_nfc, UnicodeNormalization};
 
-pub mod keywords;
 pub mod characters;
+pub mod keywords;
 pub mod normalization;
 
-pub use keywords::*;
 pub use characters::*;
+pub use keywords::*;
 pub use normalization::*;
 
 /// Core Japanese text analyzer for programming language constructs
@@ -39,13 +39,13 @@ impl JapaneseAnalyzer {
     pub fn analyze(&self, text: &str) -> Result<JapaneseTextAnalysis> {
         // First, normalize the text
         let normalized = self.normalizer.normalize(text)?;
-        
+
         // Classify characters
         let char_analysis = self.character_classifier.classify_text(&normalized)?;
-        
+
         // Detect keywords
         let keywords = self.keyword_detector.detect_keywords(&normalized)?;
-        
+
         Ok(JapaneseTextAnalysis {
             original_text: text.to_string(),
             normalized_text: normalized,
@@ -93,7 +93,8 @@ impl JapaneseTextAnalysis {
         if self.character_analysis.total_chars == 0 {
             0.0
         } else {
-            (self.character_analysis.japanese_chars as f64) / (self.character_analysis.total_chars as f64)
+            (self.character_analysis.japanese_chars as f64)
+                / (self.character_analysis.total_chars as f64)
         }
     }
 
@@ -104,9 +105,7 @@ impl JapaneseTextAnalysis {
 
     /// Get all unique keyword types found
     pub fn keyword_types(&self) -> Vec<KeywordType> {
-        let mut types: Vec<_> = self.keywords.iter()
-            .map(|kw| kw.keyword_type)
-            .collect();
+        let mut types: Vec<_> = self.keywords.iter().map(|kw| kw.keyword_type).collect();
         types.sort();
         types.dedup();
         types
@@ -114,7 +113,9 @@ impl JapaneseTextAnalysis {
 
     /// Check if a specific keyword type was found
     pub fn has_keyword_type(&self, keyword_type: KeywordType) -> bool {
-        self.keywords.iter().any(|kw| kw.keyword_type == keyword_type)
+        self.keywords
+            .iter()
+            .any(|kw| kw.keyword_type == keyword_type)
     }
 }
 
@@ -200,7 +201,7 @@ impl JapaneseUtils {
         }
 
         let kanji_ratio = kanji_count as f64 / total_chars as f64;
-        
+
         if kanji_ratio < 0.2 {
             ReadingDifficulty::Easy
         } else if kanji_ratio < 0.5 {
@@ -237,7 +238,7 @@ mod tests {
     fn test_japanese_utils() {
         assert_eq!(JapaneseUtils::hiragana_to_katakana("あいう"), "アイウ");
         assert_eq!(JapaneseUtils::katakana_to_hiragana("アイウ"), "あいう");
-        
+
         assert!(JapaneseUtils::has_mixed_scripts("helloあいう漢字"));
         assert!(!JapaneseUtils::has_mixed_scripts("あいう"));
     }
@@ -258,7 +259,7 @@ mod tests {
     fn test_japanese_text_analysis() {
         let analyzer = JapaneseAnalyzer::new();
         let analysis = analyzer.analyze("関数").unwrap();
-        
+
         assert!(analysis.is_primarily_japanese());
         assert!(analysis.japanese_ratio() > 0.9);
     }

@@ -9,10 +9,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
-use crate::spatial::{SpatialPosition, SpatialRange};
 use super::cursor::TerminalCursor;
+use crate::spatial::{SpatialPosition, SpatialRange};
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 
 #[cfg(feature = "ratatui")]
 /// Terminal text renderer for vertical text
@@ -100,42 +100,42 @@ impl TerminalRenderer {
     ) {
         let text_content = buffer.as_text();
         let lines: Vec<&str> = text_content.lines().collect();
-        
+
         // Calculate columns that fit in the area
         let chars_per_column = area.height as usize;
         let max_columns = area.width as usize;
-        
+
         let mut rendered_text = Vec::new();
         let cursor_pos = cursor.position();
-        
+
         // Process text column by column (right to left)
         for col_idx in 0..max_columns.min(lines.len()) {
             let line_idx = lines.len() - 1 - col_idx; // Right to left
             let line = lines.get(line_idx).unwrap_or(&"");
-            
+
             let mut column_chars = Vec::new();
-            
+
             // Process characters in this column (top to bottom)
             for (char_idx, ch) in line.chars().enumerate() {
                 if char_idx >= chars_per_column {
                     break; // Column full
                 }
-                
+
                 let char_pos = SpatialPosition {
                     row: char_idx,
                     column: col_idx,
                 };
-                
+
                 let style = self.calculate_char_style(char_pos, cursor_pos, selection);
-                
+
                 column_chars.push(Span::styled(ch.to_string(), style));
             }
-            
+
             // Pad column to full height
             while column_chars.len() < chars_per_column {
                 column_chars.push(Span::styled(" ", self.text_style));
             }
-            
+
             // Add column to rendered text
             if col_idx == 0 {
                 rendered_text = column_chars;
@@ -150,16 +150,15 @@ impl TerminalRenderer {
                 }
             }
         }
-        
+
         // Convert spans to lines
         let text_lines: Vec<Line> = rendered_text
             .into_iter()
             .map(|span| Line::from(span))
             .collect();
-        
-        let paragraph = Paragraph::new(Text::from(text_lines))
-            .wrap(Wrap { trim: false });
-        
+
+        let paragraph = Paragraph::new(Text::from(text_lines)).wrap(Wrap { trim: false });
+
         f.render_widget(paragraph, area);
     }
 
@@ -175,30 +174,29 @@ impl TerminalRenderer {
         let text_content = buffer.as_text();
         let lines: Vec<&str> = text_content.lines().collect();
         let cursor_pos = cursor.position();
-        
+
         let mut rendered_lines = Vec::new();
-        
+
         // Process each line
         for (line_idx, line) in lines.iter().enumerate().take(area.height as usize) {
             let mut line_spans = Vec::new();
-            
+
             // Process each character in the line
             for (char_idx, ch) in line.chars().enumerate().take(area.width as usize) {
                 let char_pos = SpatialPosition {
                     row: line_idx,
                     column: char_idx,
                 };
-                
+
                 let style = self.calculate_char_style(char_pos, cursor_pos, selection);
                 line_spans.push(Span::styled(ch.to_string(), style));
             }
-            
+
             rendered_lines.push(Line::from(line_spans));
         }
-        
-        let paragraph = Paragraph::new(Text::from(rendered_lines))
-            .wrap(Wrap { trim: false });
-        
+
+        let paragraph = Paragraph::new(Text::from(rendered_lines)).wrap(Wrap { trim: false });
+
         f.render_widget(paragraph, area);
     }
 
@@ -210,35 +208,35 @@ impl TerminalRenderer {
         selection: Option<&SpatialRange>,
     ) -> Style {
         let mut style = self.text_style;
-        
+
         // Check if character is in selection
         if let Some(sel) = selection {
             if self.is_position_in_selection(char_pos, sel) {
                 style = self.selection_style;
             }
         }
-        
+
         // Check if character is at cursor position
         if char_pos == cursor_pos {
             style = self.cursor_style;
         }
-        
+
         // Apply syntax highlighting if enabled
         if self.syntax_highlighting {
             style = self.apply_syntax_highlighting(char_pos, style);
         }
-        
+
         style
     }
 
     /// Check if position is within selection range
     fn is_position_in_selection(&self, pos: SpatialPosition, selection: &SpatialRange) -> bool {
         let (start, end) = selection.normalized();
-        
+
         if pos.row < start.row || pos.row > end.row {
             return false;
         }
-        
+
         if pos.row == start.row && pos.row == end.row {
             // Single line selection
             pos.column >= start.column && pos.column <= end.column
@@ -258,7 +256,7 @@ impl TerminalRenderer {
     fn apply_syntax_highlighting(&self, _pos: SpatialPosition, style: Style) -> Style {
         // TODO: Implement syntax highlighting for spatial programming
         // This would analyze the character/context for keywords, operators, etc.
-        
+
         // For now, just return the original style
         style
     }
@@ -276,7 +274,7 @@ impl TerminalRenderer {
         }
 
         let cursor_pos = cursor.position();
-        
+
         // Calculate screen position for cursor
         if let Some((screen_x, screen_y)) = self.buffer_to_screen_position(cursor_pos, area) {
             // Render cursor as highlighted character or block
@@ -289,10 +287,9 @@ impl TerminalRenderer {
 
             // Get character at cursor position
             let cursor_char = buffer.char_at(cursor_pos).unwrap_or(' ');
-            
-            let cursor_widget = Paragraph::new(cursor_char.to_string())
-                .style(self.cursor_style);
-            
+
+            let cursor_widget = Paragraph::new(cursor_char.to_string()).style(self.cursor_style);
+
             f.render_widget(cursor_widget, cursor_area);
         }
     }
@@ -344,9 +341,10 @@ impl TerminalRenderer {
             format!("Pos: {}:{}", cursor_pos.column, cursor_pos.row),
             format!("Dir: {:?}", self.direction),
             if let Some(sel) = selection {
-                format!("Sel: {}:{} - {}:{}", 
-                    sel.start.column, sel.start.row,
-                    sel.end.column, sel.end.row)
+                format!(
+                    "Sel: {}:{} - {}:{}",
+                    sel.start.column, sel.start.row, sel.end.column, sel.end.row
+                )
             } else {
                 "No selection".to_string()
             },
@@ -355,10 +353,12 @@ impl TerminalRenderer {
 
         let debug_widget = Paragraph::new(debug_info.join("\n"))
             .style(Style::default().fg(Color::Yellow))
-            .block(Block::default()
-                .borders(Borders::ALL)
-                .title("Debug")
-                .border_style(Style::default().fg(Color::Gray)));
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Debug")
+                    .border_style(Style::default().fg(Color::Gray)),
+            );
 
         f.render_widget(debug_widget, debug_area);
     }
@@ -421,6 +421,8 @@ impl TerminalRenderer {
         _cursor: &mut TerminalCursor,
         _selection: Option<&SpatialRange>,
     ) -> Result<()> {
-        Err(TategakiError::Rendering("Ratatui feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "Ratatui feature not enabled".to_string(),
+        ))
     }
 }

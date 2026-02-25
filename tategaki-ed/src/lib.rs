@@ -12,11 +12,13 @@
 //! - **Spatial Programming**: Layout-aware editing for spatial programming languages
 //! - **Mixed Script Support**: Seamless Japanese/ASCII code integration
 
-pub mod text_engine;
-pub mod spatial;
+pub mod backend;
+pub mod formats;
 pub mod japanese;
 pub mod programming;
-pub mod formats;
+pub mod spatial;
+pub mod text_engine;
+pub mod ui;
 
 // Conditional interface modules
 #[cfg(feature = "gpui")]
@@ -26,34 +28,45 @@ pub mod gpui_interface;
 pub mod ratatui_interface;
 
 // Re-export core types for convenience
-pub use text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
-pub use spatial::{SpatialPosition, CoordinateSystem};
-pub use japanese::{JapaneseInputMethod, CharacterHandler};
+pub use backend::{BackendSelector, BackendType, Color, Rect, RenderBackend, TextStyle};
+pub use formats::{FileFormat, FileHandler, FileManager, FileMetadata};
+pub use japanese::{CharacterHandler, JapaneseInputMethod};
+pub use spatial::{CoordinateSystem, SpatialPosition};
+pub use text_engine::{LayoutEngine, TextDirection, VerticalTextBuffer};
 
 /// Error types for the tategaki editor
 #[derive(Debug, thiserror::Error)]
 pub enum TategakiError {
     #[error("Text buffer error: {0}")]
     TextBuffer(String),
-    
+
     #[error("Spatial positioning error: {0}")]
     Spatial(String),
-    
+
     #[error("Japanese input error: {0}")]
     Japanese(String),
-    
+
     #[error("File format error: {0}")]
     Format(String),
-    
+
+    #[error("Invalid format: {0}")]
+    InvalidFormat(String),
+
+    #[error("Unsupported format: {0}")]
+    UnsupportedFormat(String),
+
+    #[error("Serialization error: {0}")]
+    Serialization(String),
+
     #[error("Rendering error: {0}")]
     Rendering(String),
-    
+
     #[error("Input/Output error: {0}")]
     Io(#[from] std::io::Error),
-    
+
     #[error("Unicode error: {0}")]
     Unicode(String),
-    
+
     #[error("Integration error with kakekotoba: {0}")]
     Integration(String),
 }
@@ -76,6 +89,8 @@ pub struct EditorConfig {
     pub keybindings: KeyBindings,
     /// Programming language features
     pub programming_features: ProgrammingFeatures,
+    /// UI layout configuration
+    pub ui_layout: UILayout,
 }
 
 /// Font configuration for vertical text
@@ -204,6 +219,133 @@ pub struct ProgrammingFeatures {
     pub kakekotoba_integration: bool,
 }
 
+/// Floating command bar configuration
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FloatingBarConfig {
+    /// Enable floating command bar
+    pub enabled: bool,
+    /// Position of the floating bar
+    pub position: FloatingPosition,
+    /// Visual styling
+    pub style: FloatingBarStyle,
+    /// Auto-hide after command execution
+    pub auto_hide: bool,
+    /// Show command history
+    pub show_history: bool,
+    /// Show suggestions
+    pub show_suggestions: bool,
+    /// Render bar content vertically (top-to-bottom)
+    pub vertical_orientation: bool,
+}
+
+/// Floating bar position options
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum FloatingPosition {
+    /// Centered in viewport
+    Center,
+    /// Top-center, offset by Y rows from top
+    TopCenter { offset_y: usize },
+    /// Bottom-center, offset by Y rows from bottom
+    BottomCenter { offset_y: usize },
+    /// Custom absolute position (x, y) in terminal cells
+    Absolute { x: usize, y: usize },
+    /// Relative to cursor position
+    NearCursor { offset_x: isize, offset_y: isize },
+    /// Custom anchoring with offsets
+    Anchored {
+        horizontal: HorizontalAnchor,
+        vertical: VerticalAnchor,
+        offset_x: isize,
+        offset_y: isize,
+    },
+}
+
+/// Horizontal anchor point
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum HorizontalAnchor {
+    Left,
+    Center,
+    Right,
+}
+
+/// Vertical anchor point
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum VerticalAnchor {
+    Top,
+    Middle,
+    Bottom,
+}
+
+/// Floating bar visual styling
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct FloatingBarStyle {
+    /// Background color (hex format)
+    pub background: String,
+    /// Background opacity (0-255)
+    pub background_alpha: u8,
+    /// Border style
+    pub border: BorderStyle,
+    /// Padding (left, right, top, bottom)
+    pub padding: (usize, usize, usize, usize),
+    /// Minimum width in characters
+    pub min_width: usize,
+    /// Maximum width in characters (None = no limit)
+    pub max_width: Option<usize>,
+    /// Draw shadow
+    pub shadow: bool,
+}
+
+/// Border style options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum BorderStyle {
+    None,
+    Single,
+    Double,
+    Rounded,
+    Thick,
+}
+
+/// UI layout configuration
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct UILayout {
+    /// Command line vertical placement
+    pub command_line_placement: CommandLinePlacement,
+    /// Status line vertical placement
+    pub status_line_placement: StatusLinePlacement,
+    /// Show line numbers
+    pub show_line_numbers: bool,
+    /// Show column indicator
+    pub show_column_indicator: bool,
+    /// Floating command bar configuration
+    pub floating_command_bar: FloatingBarConfig,
+}
+
+/// Command line placement options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CommandLinePlacement {
+    /// At the top of the viewport (row 0)
+    Top,
+    /// At the bottom of the viewport (last row)
+    Bottom,
+    /// At a specific row offset from top
+    OffsetFromTop(usize),
+    /// At a specific row offset from bottom
+    OffsetFromBottom(usize),
+}
+
+/// Status line placement options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum StatusLinePlacement {
+    /// At the top of the viewport (row 0)
+    Top,
+    /// At the bottom of the viewport (second to last row)
+    Bottom,
+    /// At a specific row offset from top
+    OffsetFromTop(usize),
+    /// At a specific row offset from bottom
+    OffsetFromBottom(usize),
+}
+
 impl Default for EditorConfig {
     fn default() -> Self {
         Self {
@@ -213,6 +355,7 @@ impl Default for EditorConfig {
             color_scheme: ColorScheme::default(),
             keybindings: KeyBindings::default(),
             programming_features: ProgrammingFeatures::default(),
+            ui_layout: UILayout::default(),
         }
     }
 }
@@ -312,6 +455,46 @@ impl Default for ProgrammingFeatures {
             bracket_matching: true,
             error_indicators: true,
             kakekotoba_integration: true,
+        }
+    }
+}
+
+impl Default for UILayout {
+    fn default() -> Self {
+        Self {
+            command_line_placement: CommandLinePlacement::Bottom,
+            status_line_placement: StatusLinePlacement::Bottom,
+            show_line_numbers: false,
+            show_column_indicator: false,
+            floating_command_bar: FloatingBarConfig::default(),
+        }
+    }
+}
+
+impl Default for FloatingBarConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            position: FloatingPosition::Center,
+            style: FloatingBarStyle::default(),
+            auto_hide: true,
+            show_history: true,
+            show_suggestions: true,
+            vertical_orientation: false, // Default to horizontal
+        }
+    }
+}
+
+impl Default for FloatingBarStyle {
+    fn default() -> Self {
+        Self {
+            background: "#202020".to_string(),
+            background_alpha: 240, // Semi-transparent
+            border: BorderStyle::Rounded,
+            padding: (2, 2, 1, 1),
+            min_width: 40,
+            max_width: Some(80),
+            shadow: true,
         }
     }
 }

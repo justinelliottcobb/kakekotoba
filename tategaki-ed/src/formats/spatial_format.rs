@@ -1,11 +1,11 @@
 //! Spatial text format with metadata support
 
-use super::{FileHandler, FileMetadata, FileFormat};
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
+use super::{FileFormat, FileHandler, FileMetadata};
 use crate::spatial::{SpatialPosition, SpatialRange};
-use std::path::Path;
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 
 /// Spatial file format handler
 pub struct SpatialFormatHandler;
@@ -106,21 +106,29 @@ impl Default for SpatialMetadata {
 
 impl FileHandler for SpatialFormatHandler {
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read spatial file: {}", e)))?;
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read spatial file: {}", e),
+            ))
+        })?;
 
         let spatial_file: SpatialFile = serde_json::from_str(&content)
             .map_err(|e| TategakiError::InvalidFormat(format!("Invalid spatial format: {}", e)))?;
 
         // Validate version
         if !self.is_version_supported(&spatial_file.version) {
-            return Err(TategakiError::UnsupportedFormat(
-                format!("Unsupported spatial format version: {}", spatial_file.version)
-            ));
+            return Err(TategakiError::UnsupportedFormat(format!(
+                "Unsupported spatial format version: {}",
+                spatial_file.version
+            )));
         }
 
         // Create buffer
-        let buffer = VerticalTextBuffer::from_text(&spatial_file.content, spatial_file.metadata.text_direction)?;
+        let buffer = VerticalTextBuffer::from_text(
+            &spatial_file.content,
+            spatial_file.metadata.text_direction,
+        )?;
 
         // Convert spatial metadata to file metadata
         let file_metadata = self.convert_spatial_to_file_metadata(spatial_file.metadata, path)?;
@@ -128,10 +136,15 @@ impl FileHandler for SpatialFormatHandler {
         Ok((buffer, file_metadata))
     }
 
-    fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()> {
+    fn save(
+        &self,
+        buffer: &VerticalTextBuffer,
+        metadata: &FileMetadata,
+        path: &Path,
+    ) -> Result<()> {
         // Create spatial file structure
         let spatial_metadata = self.convert_file_to_spatial_metadata(metadata)?;
-        
+
         let spatial_file = SpatialFile {
             version: "1.0".to_string(),
             content: buffer.as_text(),
@@ -139,18 +152,27 @@ impl FileHandler for SpatialFormatHandler {
         };
 
         // Serialize to JSON with pretty formatting
-        let json_content = serde_json::to_string_pretty(&spatial_file)
-            .map_err(|e| TategakiError::Serialization(format!("Failed to serialize spatial file: {}", e)))?;
+        let json_content = serde_json::to_string_pretty(&spatial_file).map_err(|e| {
+            TategakiError::Serialization(format!("Failed to serialize spatial file: {}", e))
+        })?;
 
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(format!("Failed to create directory: {}", e)))?;
+            std::fs::create_dir_all(parent).map_err(|e| {
+                TategakiError::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("Failed to create directory: {}", e),
+                ))
+            })?;
         }
 
         // Write to file
-        std::fs::write(path, json_content)
-            .map_err(|e| TategakiError::Io(format!("Failed to write spatial file: {}", e)))?;
+        std::fs::write(path, json_content).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to write spatial file: {}", e),
+            ))
+        })?;
 
         Ok(())
     }
@@ -165,12 +187,19 @@ impl FileHandler for SpatialFormatHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            return Err(TategakiError::Io(format!("File does not exist: {}", path.display())));
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("File does not exist: {}", path.display()),
+            )));
         }
 
         // Check if it's a valid JSON file
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(format!("Failed to read file: {}", e)))?;
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read file: {}", e),
+            ))
+        })?;
 
         // Try to parse as JSON
         let json_value: serde_json::Value = serde_json::from_str(&content)
@@ -178,21 +207,29 @@ impl FileHandler for SpatialFormatHandler {
 
         // Check required fields
         if !json_value.is_object() {
-            return Err(TategakiError::InvalidFormat("Root must be an object".to_string()));
+            return Err(TategakiError::InvalidFormat(
+                "Root must be an object".to_string(),
+            ));
         }
 
         let obj = json_value.as_object().unwrap();
 
         if !obj.contains_key("version") {
-            return Err(TategakiError::InvalidFormat("Missing 'version' field".to_string()));
+            return Err(TategakiError::InvalidFormat(
+                "Missing 'version' field".to_string(),
+            ));
         }
 
         if !obj.contains_key("content") {
-            return Err(TategakiError::InvalidFormat("Missing 'content' field".to_string()));
+            return Err(TategakiError::InvalidFormat(
+                "Missing 'content' field".to_string(),
+            ));
         }
 
         if !obj.contains_key("metadata") {
-            return Err(TategakiError::InvalidFormat("Missing 'metadata' field".to_string()));
+            return Err(TategakiError::InvalidFormat(
+                "Missing 'metadata' field".to_string(),
+            ));
         }
 
         // Try to deserialize completely
@@ -210,34 +247,50 @@ impl SpatialFormatHandler {
     }
 
     /// Convert spatial metadata to file metadata
-    fn convert_spatial_to_file_metadata(&self, spatial: SpatialMetadata, path: &Path) -> Result<FileMetadata> {
+    fn convert_spatial_to_file_metadata(
+        &self,
+        spatial: SpatialMetadata,
+        path: &Path,
+    ) -> Result<FileMetadata> {
         let mut properties = std::collections::HashMap::new();
-        
+
         // Add selections as property
         if !spatial.selections.is_empty() {
-            let selections_json = serde_json::to_string(&spatial.selections)
-                .map_err(|e| TategakiError::Serialization(format!("Failed to serialize selections: {}", e)))?;
+            let selections_json = serde_json::to_string(&spatial.selections).map_err(|e| {
+                TategakiError::Serialization(format!("Failed to serialize selections: {}", e))
+            })?;
             properties.insert("selections".to_string(), selections_json);
         }
 
         // Add annotations as property
         if !spatial.annotations.is_empty() {
-            let annotations_json = serde_json::to_string(&spatial.annotations)
-                .map_err(|e| TategakiError::Serialization(format!("Failed to serialize annotations: {}", e)))?;
+            let annotations_json = serde_json::to_string(&spatial.annotations).map_err(|e| {
+                TategakiError::Serialization(format!("Failed to serialize annotations: {}", e))
+            })?;
             properties.insert("annotations".to_string(), annotations_json);
         }
 
         // Add custom properties
         for (key, value) in spatial.properties {
-            properties.insert(key, value.to_string());
+            // If it's a JSON string, extract the actual string value
+            // Otherwise, serialize the JSON value
+            let string_value = match value {
+                serde_json::Value::String(s) => s,
+                other => other.to_string(),
+            };
+            properties.insert(key, string_value);
         }
 
-        let created_at = spatial.created_at
-            .and_then(|s| s.parse::<std::time::SystemTime>().ok())
+        let created_at = spatial
+            .created_at
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
             .or_else(|| path.metadata().ok().and_then(|m| m.created().ok()));
 
-        let modified_at = spatial.modified_at
-            .and_then(|s| s.parse::<std::time::SystemTime>().ok())
+        let modified_at = spatial
+            .modified_at
+            .and_then(|s| s.parse::<u64>().ok())
+            .map(|secs| std::time::UNIX_EPOCH + std::time::Duration::from_secs(secs))
             .or_else(|| path.metadata().ok().and_then(|m| m.modified().ok()));
 
         Ok(FileMetadata {
@@ -252,7 +305,10 @@ impl SpatialFormatHandler {
     }
 
     /// Convert file metadata to spatial metadata
-    fn convert_file_to_spatial_metadata(&self, file_meta: &FileMetadata) -> Result<SpatialMetadata> {
+    fn convert_file_to_spatial_metadata(
+        &self,
+        file_meta: &FileMetadata,
+    ) -> Result<SpatialMetadata> {
         let mut spatial_meta = SpatialMetadata {
             text_direction: file_meta.text_direction,
             cursor_position: file_meta.cursor_position,
@@ -264,14 +320,16 @@ impl SpatialFormatHandler {
 
         // Parse selections from properties
         if let Some(selections_str) = file_meta.properties.get("selections") {
-            spatial_meta.selections = serde_json::from_str(selections_str)
-                .map_err(|e| TategakiError::Serialization(format!("Failed to parse selections: {}", e)))?;
+            spatial_meta.selections = serde_json::from_str(selections_str).map_err(|e| {
+                TategakiError::Serialization(format!("Failed to parse selections: {}", e))
+            })?;
         }
 
         // Parse annotations from properties
         if let Some(annotations_str) = file_meta.properties.get("annotations") {
-            spatial_meta.annotations = serde_json::from_str(annotations_str)
-                .map_err(|e| TategakiError::Serialization(format!("Failed to parse annotations: {}", e)))?;
+            spatial_meta.annotations = serde_json::from_str(annotations_str).map_err(|e| {
+                TategakiError::Serialization(format!("Failed to parse annotations: {}", e))
+            })?;
         }
 
         // Add other properties
@@ -302,12 +360,20 @@ impl SpatialFormatHandler {
     }
 
     /// Add annotation to spatial metadata
-    pub fn add_annotation(&self, spatial_meta: &mut SpatialMetadata, annotation: SpatialAnnotation) {
+    pub fn add_annotation(
+        &self,
+        spatial_meta: &mut SpatialMetadata,
+        annotation: SpatialAnnotation,
+    ) {
         spatial_meta.annotations.push(annotation);
     }
 
     /// Remove annotation by index
-    pub fn remove_annotation(&self, spatial_meta: &mut SpatialMetadata, index: usize) -> Option<SpatialAnnotation> {
+    pub fn remove_annotation(
+        &self,
+        spatial_meta: &mut SpatialMetadata,
+        index: usize,
+    ) -> Option<SpatialAnnotation> {
         if index < spatial_meta.annotations.len() {
             Some(spatial_meta.annotations.remove(index))
         } else {
@@ -316,18 +382,31 @@ impl SpatialFormatHandler {
     }
 
     /// Find annotations at position
-    pub fn find_annotations_at(&self, spatial_meta: &SpatialMetadata, position: SpatialPosition) -> Vec<&SpatialAnnotation> {
-        spatial_meta.annotations
+    pub fn find_annotations_at<'a>(
+        &self,
+        spatial_meta: &'a SpatialMetadata,
+        position: SpatialPosition,
+    ) -> Vec<&'a SpatialAnnotation> {
+        spatial_meta
+            .annotations
             .iter()
-            .filter(|ann| ann.range.contains(position))
+            .filter(|ann| ann.range.contains(&position))
             .collect()
     }
 
     /// Get all annotations of specific type
-    pub fn get_annotations_by_type(&self, spatial_meta: &SpatialMetadata, annotation_type: &AnnotationType) -> Vec<&SpatialAnnotation> {
-        spatial_meta.annotations
+    pub fn get_annotations_by_type<'a>(
+        &self,
+        spatial_meta: &'a SpatialMetadata,
+        annotation_type: &AnnotationType,
+    ) -> Vec<&'a SpatialAnnotation> {
+        spatial_meta
+            .annotations
             .iter()
-            .filter(|ann| std::mem::discriminant(&ann.annotation_type) == std::mem::discriminant(annotation_type))
+            .filter(|ann| {
+                std::mem::discriminant(&ann.annotation_type)
+                    == std::mem::discriminant(annotation_type)
+            })
             .collect()
     }
 
@@ -335,19 +414,22 @@ impl SpatialFormatHandler {
     pub fn validate_spatial_file(&self, spatial_file: &SpatialFile) -> Result<()> {
         // Check version
         if !self.is_version_supported(&spatial_file.version) {
-            return Err(TategakiError::UnsupportedFormat(
-                format!("Unsupported version: {}", spatial_file.version)
-            ));
+            return Err(TategakiError::UnsupportedFormat(format!(
+                "Unsupported version: {}",
+                spatial_file.version
+            )));
         }
 
         // Validate annotations
         for (i, annotation) in spatial_file.metadata.annotations.iter().enumerate() {
-            if annotation.range.start.row > annotation.range.end.row ||
-               (annotation.range.start.row == annotation.range.end.row && 
-                annotation.range.start.column > annotation.range.end.column) {
-                return Err(TategakiError::InvalidFormat(
-                    format!("Invalid range in annotation {}: {:?}", i, annotation.range)
-                ));
+            if annotation.range.start.row > annotation.range.end.row
+                || (annotation.range.start.row == annotation.range.end.row
+                    && annotation.range.start.column > annotation.range.end.column)
+            {
+                return Err(TategakiError::InvalidFormat(format!(
+                    "Invalid range in annotation {}: {:?}",
+                    i, annotation.range
+                )));
             }
         }
 
@@ -355,9 +437,10 @@ impl SpatialFormatHandler {
         if let Some(cursor) = spatial_file.metadata.cursor_position {
             let content_lines = spatial_file.content.lines().count();
             if cursor.row >= content_lines {
-                return Err(TategakiError::InvalidFormat(
-                    format!("Cursor position row {} exceeds content lines {}", cursor.row, content_lines)
-                ));
+                return Err(TategakiError::InvalidFormat(format!(
+                    "Cursor position row {} exceeds content lines {}",
+                    cursor.row, content_lines
+                )));
             }
         }
 
@@ -388,7 +471,10 @@ mod tests {
         let spatial_file = SpatialFile::default();
         assert_eq!(spatial_file.version, "1.0");
         assert!(spatial_file.content.is_empty());
-        assert_eq!(spatial_file.metadata.text_direction, TextDirection::VerticalTopToBottom);
+        assert_eq!(
+            spatial_file.metadata.text_direction,
+            TextDirection::VerticalTopToBottom
+        );
     }
 
     #[test]
@@ -403,18 +489,29 @@ mod tests {
     fn test_annotation_creation() {
         let handler = SpatialFormatHandler::new();
         let range = SpatialRange {
-            start: SpatialPosition { row: 0, column: 0 },
-            end: SpatialPosition { row: 0, column: 5 },
+            start: SpatialPosition {
+                row: 0,
+                column: 0,
+                byte_offset: 0,
+            },
+            end: SpatialPosition {
+                row: 0,
+                column: 5,
+                byte_offset: 0,
+            },
         };
-        
+
         let annotation = handler.create_annotation(
-            range,
+            range.clone(),
             AnnotationType::Comment,
             "Test comment".to_string(),
         );
-        
+
         assert_eq!(annotation.range, range);
-        assert!(matches!(annotation.annotation_type, AnnotationType::Comment));
+        assert!(matches!(
+            annotation.annotation_type,
+            AnnotationType::Comment
+        ));
         assert_eq!(annotation.content, "Test comment");
     }
 
@@ -422,34 +519,54 @@ mod tests {
     fn test_save_load_cycle() -> Result<()> {
         let handler = SpatialFormatHandler::new();
         let test_content = "Test spatial content\n日本語テスト";
-        
+
         // Create buffer and metadata
-        let buffer = VerticalTextBuffer::from_text(test_content, TextDirection::VerticalTopToBottom)?;
+        let buffer =
+            VerticalTextBuffer::from_text(test_content, TextDirection::VerticalTopToBottom)?;
         let mut metadata = FileMetadata {
             format: FileFormat::Spatial,
             text_direction: TextDirection::VerticalTopToBottom,
-            cursor_position: Some(SpatialPosition { row: 1, column: 5 }),
+            cursor_position: Some(SpatialPosition {
+                row: 1,
+                column: 5,
+                byte_offset: 0,
+            }),
             encoding: "UTF-8".to_string(),
             ..FileMetadata::default()
         };
-        
+
         // Add some test properties
-        metadata.properties.insert("test_prop".to_string(), "test_value".to_string());
-        
+        metadata
+            .properties
+            .insert("test_prop".to_string(), "test_value".to_string());
+
         // Save to temporary file
         let temp_file = NamedTempFile::new().unwrap();
         handler.save(&buffer, &metadata, temp_file.path())?;
-        
+
         // Load back
         let (loaded_buffer, loaded_metadata) = handler.load(temp_file.path())?;
-        
+
         // Verify
         assert_eq!(loaded_buffer.as_text(), test_content);
         assert_eq!(loaded_metadata.format, FileFormat::Spatial);
-        assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 5 }));
-        assert_eq!(loaded_metadata.properties.get("test_prop"), Some(&"test_value".to_string()));
-        
+        assert_eq!(
+            loaded_metadata.text_direction,
+            TextDirection::VerticalTopToBottom
+        );
+        assert_eq!(
+            loaded_metadata.cursor_position,
+            Some(SpatialPosition {
+                row: 1,
+                column: 5,
+                byte_offset: 0
+            })
+        );
+        assert_eq!(
+            loaded_metadata.properties.get("test_prop"),
+            Some(&"test_value".to_string())
+        );
+
         Ok(())
     }
 
@@ -457,31 +574,53 @@ mod tests {
     fn test_json_serialization() -> Result<()> {
         let mut spatial_file = SpatialFile::default();
         spatial_file.content = "Test content".to_string();
-        spatial_file.metadata.cursor_position = Some(SpatialPosition { row: 0, column: 5 });
-        
+        spatial_file.metadata.cursor_position = Some(SpatialPosition {
+            row: 0,
+            column: 5,
+            byte_offset: 0,
+        });
+
         // Add annotation
         let annotation = SpatialAnnotation {
             range: SpatialRange {
-                start: SpatialPosition { row: 0, column: 0 },
-                end: SpatialPosition { row: 0, column: 4 },
+                start: SpatialPosition {
+                    row: 0,
+                    column: 0,
+                    byte_offset: 0,
+                },
+                end: SpatialPosition {
+                    row: 0,
+                    column: 4,
+                    byte_offset: 0,
+                },
             },
             annotation_type: AnnotationType::Highlight,
             content: "Important".to_string(),
             properties: std::collections::HashMap::new(),
         };
         spatial_file.metadata.annotations.push(annotation);
-        
+
         // Serialize
         let json = serde_json::to_string_pretty(&spatial_file).unwrap();
-        
+
         // Deserialize
         let deserialized: SpatialFile = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(deserialized.content, "Test content");
-        assert_eq!(deserialized.metadata.cursor_position, Some(SpatialPosition { row: 0, column: 5 }));
+        assert_eq!(
+            deserialized.metadata.cursor_position,
+            Some(SpatialPosition {
+                row: 0,
+                column: 5,
+                byte_offset: 0
+            })
+        );
         assert_eq!(deserialized.metadata.annotations.len(), 1);
-        assert!(matches!(deserialized.metadata.annotations[0].annotation_type, AnnotationType::Highlight));
-        
+        assert!(matches!(
+            deserialized.metadata.annotations[0].annotation_type,
+            AnnotationType::Highlight
+        ));
+
         Ok(())
     }
 
@@ -489,26 +628,38 @@ mod tests {
     fn test_annotation_management() {
         let handler = SpatialFormatHandler::new();
         let mut spatial_meta = SpatialMetadata::default();
-        
+
         // Create test annotation
         let annotation = handler.create_annotation(
             SpatialRange {
-                start: SpatialPosition { row: 0, column: 0 },
-                end: SpatialPosition { row: 0, column: 5 },
+                start: SpatialPosition {
+                    row: 0,
+                    column: 0,
+                    byte_offset: 0,
+                },
+                end: SpatialPosition {
+                    row: 0,
+                    column: 5,
+                    byte_offset: 5,
+                },
             },
             AnnotationType::Comment,
             "Test comment".to_string(),
         );
-        
+
         // Add annotation
         handler.add_annotation(&mut spatial_meta, annotation);
         assert_eq!(spatial_meta.annotations.len(), 1);
-        
+
         // Find annotations at position
-        let position = SpatialPosition { row: 0, column: 2 };
+        let position = SpatialPosition {
+            row: 0,
+            column: 2,
+            byte_offset: 2,
+        };
         let found = handler.find_annotations_at(&spatial_meta, position);
         assert_eq!(found.len(), 1);
-        
+
         // Remove annotation
         let removed = handler.remove_annotation(&mut spatial_meta, 0);
         assert!(removed.is_some());
