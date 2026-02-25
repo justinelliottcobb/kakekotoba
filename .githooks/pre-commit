@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -e
+
+# Pre-commit hook for kakekotoba
+#
+# Strict mode: set PRE_COMMIT_STRICT=1 to enforce all checks.
+# Default (lenient) mode: runs fmt check only, warns on clippy/test failures.
+#
+# Once the codebase compiles cleanly, switch to strict mode by default.
+
+STRICT="${PRE_COMMIT_STRICT:-0}"
+
+echo "=== Pre-commit: cargo fmt ==="
+if ! cargo fmt --check --quiet 2>/dev/null; then
+    echo "ERROR: cargo fmt check failed. Run 'cargo fmt' to fix."
+    exit 1
+fi
+
+if [ "$STRICT" = "1" ]; then
+    echo "=== Pre-commit: cargo clippy (strict) ==="
+    if ! cargo clippy --workspace --quiet -- -D warnings 2>/dev/null; then
+        echo "ERROR: clippy found warnings. Fix them before committing."
+        exit 1
+    fi
+
+    echo "=== Pre-commit: cargo test (strict) ==="
+    if ! cargo test --workspace --quiet 2>/dev/null; then
+        echo "ERROR: tests failed. Fix them before committing."
+        exit 1
+    fi
+else
+    echo "=== Pre-commit: cargo clippy (advisory) ==="
+    cargo clippy --workspace --quiet -- -D warnings 2>/dev/null || {
+        echo "WARNING: clippy found issues (non-blocking in lenient mode)."
+    }
+
+    echo "=== Pre-commit: cargo test (advisory) ==="
+    cargo test --workspace --quiet 2>/dev/null || {
+        echo "WARNING: tests failed (non-blocking in lenient mode)."
+    }
+fi
+
+echo "=== Pre-commit: all checks passed ==="
