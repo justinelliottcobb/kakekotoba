@@ -5,7 +5,7 @@ use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 use std::collections::HashMap;
 
 /// Represents a detected code block
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CodeBlock {
     /// Span covering the entire block
     pub span: Span2D,
@@ -20,7 +20,7 @@ pub struct CodeBlock {
 }
 
 /// Types of code blocks that can be detected
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum BlockType {
     /// Function definition block
     Function,
@@ -100,7 +100,7 @@ impl BlockDetector {
         indentation_map: &HashMap<Position2D, usize>,
     ) -> Result<Vec<CodeBlock>> {
         let mut blocks = Vec::new();
-        let mut block_stack = Vec::new(); // Stack for tracking nested blocks
+        let mut block_stack: Vec<usize> = Vec::new(); // Stack for tracking nested blocks
         let mut current_block: Option<BlockBuilder> = None;
 
         for (i, token) in tokens.iter().enumerate() {
@@ -131,10 +131,10 @@ impl BlockDetector {
                 builder.add_token(token.clone());
 
                 // Check if we've reached the end of the block
-                if self.is_block_end(token, token_indent, builder.indentation_level) {
-                    let block = builder.build();
+                let should_end = self.is_block_end(token, token_indent, builder.indentation_level);
+                if should_end {
+                    let block = current_block.take().unwrap().build();
                     blocks.push(block);
-                    current_block = None;
                 }
             } else {
                 // Not in a specific block, create a generic block if indented
@@ -184,7 +184,7 @@ impl BlockDetector {
         for block in blocks {
             // Find the appropriate parent for this block
             while let Some(&parent_idx) = stack.last() {
-                let parent = &root_blocks[parent_idx];
+                let parent: &CodeBlock = &root_blocks[parent_idx];
                 if block.indentation_level > parent.indentation_level {
                     // This block is a child of the current parent
                     break;

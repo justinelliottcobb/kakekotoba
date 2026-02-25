@@ -247,7 +247,7 @@ impl Parser {
 
     fn parse_expression(&mut self) -> Result<Expression> {
         // Placeholder - implement expression parsing
-        if let Some(token) = self.advance() {
+        if let Some(token) = self.advance().cloned() {
             match &token.kind {
                 TokenKind::Integer(n) => Ok(Expression::Literal(Literal::Integer(*n))),
                 TokenKind::String(s) => Ok(Expression::Literal(Literal::String(s.clone()))),
@@ -275,7 +275,7 @@ impl Parser {
 
     fn parse_type(&mut self) -> Result<crate::types::Type> {
         // Placeholder - implement type parsing
-        if let Some(token) = self.advance() {
+        if let Some(token) = self.advance().cloned() {
             match &token.kind {
                 TokenKind::Identifier(name) => match name.as_str() {
                     "Int" => Ok(crate::types::Type::Int),
@@ -304,7 +304,7 @@ impl Parser {
     }
 
     fn parse_identifier(&mut self) -> Result<Identifier> {
-        if let Some(token) = self.advance() {
+        if let Some(token) = self.advance().cloned() {
             match &token.kind {
                 TokenKind::Identifier(name) => Ok(Identifier {
                     name: name.clone(),

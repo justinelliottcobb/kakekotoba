@@ -17,7 +17,7 @@ pub use flow::*;
 pub use indentation::*;
 
 /// Represents the layout structure of a piece of code
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CodeLayout {
     /// Writing direction for this layout
     pub direction: WritingDirection,

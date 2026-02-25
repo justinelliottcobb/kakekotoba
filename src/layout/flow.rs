@@ -4,7 +4,7 @@ use crate::error::Result;
 use crate::vertical::{Position2D, SpatialToken, WritingDirection};
 
 /// Analyzes how text flows in 2D space for vertical programming languages
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct TextFlow {
     /// Primary writing direction
     pub direction: WritingDirection,
@@ -15,7 +15,7 @@ pub struct TextFlow {
 }
 
 /// Represents a segment of text that flows in a consistent direction
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FlowSegment {
     /// Start position of the segment
     pub start: Position2D,
@@ -28,7 +28,7 @@ pub struct FlowSegment {
 }
 
 /// Specific flow directions within text
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FlowDirection {
     /// Top to bottom flow
     TopToBottom,
@@ -41,7 +41,7 @@ pub enum FlowDirection {
 }
 
 /// Represents interruptions in text flow
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct FlowBreak {
     /// Position where the break occurs
     pub position: Position2D,
@@ -50,7 +50,7 @@ pub struct FlowBreak {
 }
 
 /// Types of flow breaks
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FlowBreakType {
     /// Line break (new line)
     LineBreak,
@@ -106,16 +106,19 @@ impl TextFlow {
                 Self::determine_flow_direction(last_position, token.span.start, direction);
 
             // Check if we need to start a new segment
-            if let Some(ref mut builder) = current_segment {
-                if builder.direction != flow_direction
+            let should_break = if let Some(ref builder) = current_segment {
+                builder.direction != flow_direction
                     || Self::should_break_segment(last_position, token.span.start)
-                {
-                    // End current segment and start new one
-                    flow.segments.push(builder.build());
-                    current_segment =
-                        Some(FlowSegmentBuilder::new(token.span.start, flow_direction));
-                }
             } else {
+                false
+            };
+
+            if should_break {
+                if let Some(builder) = current_segment.take() {
+                    flow.segments.push(builder.build());
+                }
+                current_segment = Some(FlowSegmentBuilder::new(token.span.start, flow_direction));
+            } else if current_segment.is_none() {
                 // Start first segment
                 current_segment = Some(FlowSegmentBuilder::new(token.span.start, flow_direction));
             }

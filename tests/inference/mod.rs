@@ -94,7 +94,7 @@ fn test_simple_function_inference() {
                 } => {
                     assert_eq!(params.len(), 1);
                     assert_eq!(params[0], Type::Int);
-                    assert_eq!(**return_type, Type::Int);
+                    assert_eq!(*return_type.as_ref(), Type::Int);
                 }
                 _ => panic!("Expected function type, got {:?}", scheme.ty),
             }

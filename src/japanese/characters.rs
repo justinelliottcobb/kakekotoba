@@ -1,9 +1,9 @@
 //! Japanese character classification and analysis
 
 use crate::error::Result;
-use unicode_categories::UnicodeCategories;
 
 /// Classifies Japanese characters for programming language analysis
+#[derive(Debug)]
 pub struct CharacterClassifier {
     // Could add configuration or caching here in the future
 }
@@ -163,7 +163,6 @@ impl CharacterClassifier {
         CharacterInfo {
             character: c,
             classification: self.classify_char(c),
-            unicode_category: c.general_category_group(),
             can_start_identifier: self.can_start_identifier(c),
             can_continue_identifier: self.can_continue_identifier(c),
             is_operator: self.is_operator_char(c),
@@ -200,7 +199,7 @@ pub enum CharacterClass {
 }
 
 /// Primary script classifications
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 pub enum JapaneseScript {
     /// Primarily Kanji
     Kanji,
@@ -213,6 +212,7 @@ pub enum JapaneseScript {
     /// Mixed scripts
     Mixed,
     /// Other/unknown script
+    #[default]
     Other,
 }
 
@@ -265,7 +265,6 @@ impl CharacterAnalysis {
 pub struct CharacterInfo {
     pub character: char,
     pub classification: CharacterClass,
-    pub unicode_category: unicode_categories::GeneralCategoryGroup,
     pub can_start_identifier: bool,
     pub can_continue_identifier: bool,
     pub is_operator: bool,

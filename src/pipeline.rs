@@ -1,16 +1,12 @@
 use crate::ast::Program;
-use crate::codegen::CodeGenerator;
 use crate::error::{Error, Result};
 use crate::inference::TypeInference;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
-use inkwell::context::Context;
 use std::path::Path;
 use tracing::{info, instrument, warn};
 
-pub struct Compiler {
-    context: Context,
-}
+pub struct Compiler;
 
 #[derive(Debug, Clone)]
 pub struct CompilerOptions {
@@ -33,9 +29,7 @@ impl Default for CompilerOptions {
 
 impl Compiler {
     pub fn new() -> Self {
-        Self {
-            context: Context::create(),
-        }
+        Self
     }
 
     #[instrument(skip(self, source))]
@@ -62,41 +56,18 @@ impl Compiler {
             return Ok(CompilationResult {
                 ast: Some(ast),
                 type_info: Some(type_info),
-                ir: None,
                 executable: None,
             });
         }
 
-        // Stage 4: Code Generation
-        info!("Running code generator");
-        let ir = self.generate_code(&ast)?;
-
-        if options.output_ir {
-            println!("=== Generated LLVM IR ===");
-            ir.print_to_stderr();
-        }
-
-        // Stage 5: Optimization (if requested)
-        if options.optimize {
-            info!("Running optimizations");
-            self.optimize_ir(&ir)?;
-        }
-
-        // Stage 6: Executable Generation (if output path specified)
-        let executable = if let Some(output_path) = options.output_path {
-            info!("Generating executable: {}", output_path);
-            Some(self.generate_executable(&ir, &output_path)?)
-        } else {
-            None
-        };
-
-        info!("Compilation completed successfully");
+        // Stage 4: Code Generation — not yet implemented
+        // See docs/ROADMAP.md Phase 3 (Bytecode VM) and Phase 4 (Native Compilation)
+        warn!("Code generation not yet implemented; stopping after type check");
 
         Ok(CompilationResult {
             ast: Some(ast),
             type_info: Some(type_info),
-            ir: Some(ir),
-            executable,
+            executable: None,
         })
     }
 
@@ -106,7 +77,7 @@ impl Compiler {
         path: P,
         options: CompilerOptions,
     ) -> Result<CompilationResult> {
-        let source = std::fs::read_to_string(&path).map_err(|e| Error::Io(e))?;
+        let source = std::fs::read_to_string(&path).map_err(Error::Io)?;
 
         info!("Compiling file: {:?}", path);
         self.compile_source(source, options)
@@ -130,32 +101,6 @@ impl Compiler {
             type_environment: type_env,
         })
     }
-
-    fn generate_code(&self, ast: &Program) -> Result<IRModule> {
-        let mut codegen = CodeGenerator::new(&self.context, "kakekotoba_module")?;
-        codegen.compile_program(ast)?;
-
-        Ok(IRModule {
-            _context: &self.context,
-            module: codegen.get_module(),
-        })
-    }
-
-    fn optimize_ir(&self, _ir: &IRModule) -> Result<()> {
-        // TODO: Implement LLVM optimization passes
-        warn!("IR optimization not yet implemented");
-        Ok(())
-    }
-
-    fn generate_executable(&self, _ir: &IRModule, output_path: &str) -> Result<ExecutableInfo> {
-        // TODO: Implement executable generation
-        warn!("Executable generation not yet implemented");
-
-        Ok(ExecutableInfo {
-            path: output_path.to_string(),
-            size: 0,
-        })
-    }
 }
 
 impl Default for Compiler {
@@ -168,24 +113,12 @@ impl Default for Compiler {
 pub struct CompilationResult {
     pub ast: Option<Program>,
     pub type_info: Option<TypeInferenceResult>,
-    pub ir: Option<IRModule>,
     pub executable: Option<ExecutableInfo>,
 }
 
 #[derive(Debug)]
 pub struct TypeInferenceResult {
     pub type_environment: std::collections::HashMap<String, crate::types::TypeScheme>,
-}
-
-pub struct IRModule<'ctx> {
-    _context: &'ctx Context,
-    module: &'ctx inkwell::module::Module<'ctx>,
-}
-
-impl<'ctx> IRModule<'ctx> {
-    pub fn print_to_stderr(&self) {
-        self.module.print_to_stderr();
-    }
 }
 
 #[derive(Debug)]

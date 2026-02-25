@@ -3,9 +3,10 @@
 //! This module extends the standard AST with spatial positioning information,
 //! enabling vertical programming language features and preserving layout semantics.
 
-use crate::ast::{Declaration, Expression, Statement, Type};
+use crate::ast::{Declaration, Expression, Statement};
 use crate::error::Result;
 use crate::layout::CodeLayout;
+use crate::types::Type;
 use crate::vertical::{Position2D, Span2D};
 use serde::{Deserialize, Serialize};
 
@@ -46,26 +47,26 @@ impl SpatialProgram {
         }
     }
 
-    /// Get all nodes at a specific position
-    pub fn nodes_at_position(&self, pos: Position2D) -> Vec<&SpatialNode> {
+    /// Get all node IDs at a specific position
+    pub fn nodes_at_position(&self, pos: Position2D) -> Vec<NodeId> {
         let mut visitor = PositionQuery::new(pos);
         visitor.visit_node(&self.spatial_root);
-        visitor.results()
+        visitor.take_results()
     }
 
-    /// Find the deepest node containing a position
-    pub fn deepest_node_at(&self, pos: Position2D) -> Option<&SpatialNode> {
-        let nodes = self.nodes_at_position(pos);
-        // Return the node with the smallest span (deepest/most specific)
-        nodes.into_iter().min_by_key(|node| node.span.byte_length())
+    /// Find the deepest node ID containing a position
+    pub fn deepest_node_at(&self, pos: Position2D) -> Option<NodeId> {
+        let mut finder = visitor::DeepestNodeFinder::new(pos);
+        finder.visit_node(&self.spatial_root);
+        finder.deepest_node()
     }
 
-    /// Get all nodes in a spatial range
-    pub fn nodes_in_range(&self, start: Position2D, end: Position2D) -> Vec<&SpatialNode> {
+    /// Get all node IDs in a spatial range
+    pub fn nodes_in_range(&self, start: Position2D, end: Position2D) -> Vec<NodeId> {
         let query_span = Span2D::new(start, end);
         let mut visitor = RangeQuery::new(query_span);
         visitor.visit_node(&self.spatial_root);
-        visitor.results()
+        visitor.take_results()
     }
 
     /// Calculate spatial metrics for the program
@@ -125,8 +126,7 @@ impl SourceInfo {
 
     /// Get the line containing a position
     pub fn line_at_position(&self, pos: Position2D) -> Option<&str> {
-        let lines: Vec<&str> = self.source_text.lines().collect();
-        lines.get(pos.row)
+        self.source_text.lines().nth(pos.row)
     }
 }
 

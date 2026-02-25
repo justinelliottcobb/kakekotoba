@@ -24,7 +24,7 @@ path = "src/bin/terminal.rs"
 required-features = ["notcurses"]
 
 [features]
-default = ["gpui", "notcurses"]
+default = ["notcurses"]
 gpui = ["dep:gpui", "dep:cosmic-text"]
 ratatui = ["dep:ratatui", "dep:crossterm"]
 notcurses = ["dep:libnotcurses-sys"]
