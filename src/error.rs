@@ -48,6 +48,16 @@ pub enum Error {
         message: String,
     },
 
+    #[error("Runtime error: {message}")]
+    #[diagnostic(code(kakekotoba::runtime))]
+    Runtime {
+        #[source_code]
+        src: String,
+        #[label("here")]
+        span: SourceSpan,
+        message: String,
+    },
+
     #[error("Code generation error: {message}")]
     #[diagnostic(code(kakekotoba::codegen))]
     Codegen { message: String },

@@ -1,8 +1,10 @@
 use crate::ast::Program;
 use crate::error::{Error, Result};
 use crate::inference::TypeInference;
+use crate::interpreter::{Interpreter, Value};
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::sexp_parser::SExpParser;
 use std::path::Path;
 use tracing::{info, instrument, warn};
 
@@ -69,6 +71,33 @@ impl Compiler {
             type_info: Some(type_info),
             executable: None,
         })
+    }
+
+    /// Run a source string using the S-expression pipeline (lex → sexp parse → interpret)
+    #[instrument(skip(self, source))]
+    pub fn run_source(&self, source: String) -> Result<Value> {
+        info!("Running S-expression pipeline");
+
+        let tokens = self.lex(source.clone())?;
+        let mut parser = SExpParser::new(tokens, source);
+        let program = parser.parse_program()?;
+        let mut interpreter = Interpreter::new();
+        interpreter.eval_program(&program)
+    }
+
+    /// Run a file using the S-expression pipeline
+    #[instrument(skip(self, path))]
+    pub fn run_file<P: AsRef<Path> + std::fmt::Debug>(&self, path: P) -> Result<Value> {
+        let source = std::fs::read_to_string(&path).map_err(Error::Io)?;
+        info!("Running file: {:?}", path);
+        self.run_source(source)
+    }
+
+    /// Parse a source string using the S-expression parser
+    pub fn parse_sexp(&self, source: String) -> Result<Program> {
+        let tokens = self.lex(source.clone())?;
+        let mut parser = SExpParser::new(tokens, source);
+        parser.parse_program()
     }
 
     #[instrument(skip(self, path))]
