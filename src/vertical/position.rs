@@ -213,7 +213,7 @@ mod tests {
     #[test]
     fn test_position_mapper() {
         let text = "line1\nline2\nline3";
-        let mapper = PositionMapper::new(text, super::WritingDirection::VerticalTbRl);
+        let mapper = PositionMapper::new(text, crate::vertical::WritingDirection::VerticalTbRl);
 
         let pos = mapper.byte_to_2d(7); // 'i' in "line2"
         assert_eq!(pos.row, 1);

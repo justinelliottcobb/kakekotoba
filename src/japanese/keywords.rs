@@ -4,6 +4,7 @@ use crate::error::Result;
 use std::collections::HashMap;
 
 /// Detects and classifies Japanese keywords in programming contexts
+#[derive(Debug)]
 pub struct KeywordDetector {
     /// Map from keyword text to keyword type
     keyword_map: HashMap<String, KeywordType>,
@@ -82,11 +83,12 @@ impl KeywordDetector {
 
         for (word, start_offset) in words {
             if let Some(&keyword_type) = self.keyword_map.get(&word) {
+                let byte_length = word.len();
                 keywords.push(DetectedKeyword {
                     text: word,
                     keyword_type,
                     byte_offset: start_offset,
-                    byte_length: word.len(),
+                    byte_length,
                 });
             }
         }

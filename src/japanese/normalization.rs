@@ -4,6 +4,7 @@ use crate::error::Result;
 use unicode_normalization::{is_nfc, is_nfd, is_nfkc, is_nfkd, UnicodeNormalization};
 
 /// Normalizes Japanese text for consistent processing in programming contexts
+#[derive(Debug)]
 pub struct TextNormalizer {
     /// Normalization form to use
     form: NormalizationForm,

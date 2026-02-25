@@ -1,11 +1,12 @@
 use miette::{Diagnostic, SourceSpan};
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum Error {
-    #[error("Lexical error at position {position}")]
+    #[error("Lexical error: {message}")]
     #[diagnostic(code(kakekotoba::lexer))]
     Lexer {
         #[source_code]
@@ -58,7 +59,7 @@ pub enum Error {
     Utf8(#[from] std::str::Utf8Error),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

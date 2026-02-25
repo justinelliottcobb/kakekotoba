@@ -92,12 +92,12 @@ impl SpatialTransformer {
 
         // Set properties based on expression type
         match expr {
-            ast::Expression::Binary { .. } => {
+            ast::Expression::Binary(_) => {
                 props.multiline = false;
                 props.precedence_level = 1;
                 props.operator_alignment = super::nodes::OperatorAlignment::Center;
             }
-            ast::Expression::Call { .. } => {
+            ast::Expression::Application(_) => {
                 props.multiline = false;
                 props.precedence_level = 10;
                 props.paren_style = super::nodes::ParenStyle::Horizontal;
@@ -124,19 +124,9 @@ impl SpatialTransformer {
                 props.termination = super::nodes::StatementTermination::Semicolon;
                 props.indentation_style = super::nodes::IndentationStyle::None;
             }
-            ast::Statement::If { .. } => {
-                props.requires_block = true;
-                props.indentation_style = super::nodes::IndentationStyle::Block;
-                props.flow_control.nesting_level = self.current_indentation + 1;
-            }
-            ast::Statement::While { .. } => {
-                props.requires_block = true;
-                props.indentation_style = super::nodes::IndentationStyle::Block;
-                props.flow_control.nesting_level = self.current_indentation + 1;
-            }
-            ast::Statement::Return(_) => {
-                props.flow_control.breaks_flow = true;
+            ast::Statement::Let(_) => {
                 props.termination = super::nodes::StatementTermination::Semicolon;
+                props.indentation_style = super::nodes::IndentationStyle::None;
             }
         }
 
@@ -153,17 +143,17 @@ impl SpatialTransformer {
 
         // Set properties based on declaration type
         match decl {
-            ast::Declaration::Function { .. } => {
+            ast::Declaration::Function(_) => {
                 props.starts_section = true;
                 props.visibility_scope = super::nodes::VisibilityScope::Private;
                 props.doc_position = super::nodes::DocumentationPosition::Above;
             }
-            ast::Declaration::Type { .. } => {
+            ast::Declaration::Type(_) => {
                 props.starts_section = true;
                 props.visibility_scope = super::nodes::VisibilityScope::Private;
                 props.doc_position = super::nodes::DocumentationPosition::Above;
             }
-            ast::Declaration::Variable { .. } => {
+            ast::Declaration::Import(_) => {
                 props.starts_section = false;
                 props.visibility_scope = super::nodes::VisibilityScope::Private;
             }
@@ -465,7 +455,9 @@ mod tests {
         let expr = ast::Expression::Literal(ast::Literal::Integer(42));
         let span = Span2D::new(Position2D::new(0, 0, 0), Position2D::new(2, 0, 2));
 
-        let spatial_node = transformer.transform_expression(&expr, span).unwrap();
+        let spatial_node = transformer
+            .transform_expression(&expr, span.clone())
+            .unwrap();
 
         assert_eq!(spatial_node.span, span);
         assert!(matches!(

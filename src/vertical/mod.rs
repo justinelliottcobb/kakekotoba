@@ -16,7 +16,7 @@ pub use position::*;
 pub use tokenizer::*;
 
 /// Represents the writing direction for text processing
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum WritingDirection {
     /// Horizontal, left-to-right (English style)
     HorizontalLtr,
@@ -31,9 +31,10 @@ pub enum WritingDirection {
 }
 
 /// Core vertical text processor that handles bidirectional text and 2D positioning
+#[derive(Debug)]
 pub struct VerticalProcessor {
-    /// Bidirectional text analysis
-    bidi_info: Option<BidiInfo>,
+    /// Bidirectional text levels
+    bidi_levels: Vec<Level>,
     /// Current writing direction
     direction: WritingDirection,
     /// Original text content
@@ -45,16 +46,17 @@ impl VerticalProcessor {
     pub fn new(content: &str) -> Self {
         let bidi_info = BidiInfo::new(content, None);
         let direction = Self::detect_writing_direction(&bidi_info);
+        let bidi_levels = bidi_info.levels.clone();
 
         Self {
-            bidi_info: Some(bidi_info),
+            bidi_levels,
             direction,
             content: content.to_string(),
         }
     }
 
     /// Detect the primary writing direction from bidirectional analysis
-    fn detect_writing_direction(bidi_info: &BidiInfo) -> WritingDirection {
+    fn detect_writing_direction(_bidi_info: &BidiInfo) -> WritingDirection {
         // For now, default to vertical Japanese style
         // TODO: Implement actual detection logic based on character analysis
         WritingDirection::VerticalTbRl

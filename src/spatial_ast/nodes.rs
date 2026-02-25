@@ -1,6 +1,7 @@
 //! Spatial AST node definitions with 2D positioning
 
 use crate::ast;
+use crate::types::Type as KakeType;
 use crate::vertical::{Position2D, Span2D};
 use serde::{Deserialize, Serialize};
 
@@ -248,7 +249,7 @@ impl Default for ExportStyle {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpatialType {
     /// The wrapped type
-    pub type_info: ast::Type,
+    pub type_info: KakeType,
     /// Additional spatial properties
     pub spatial_props: TypeSpatialProps,
 }
@@ -494,7 +495,7 @@ impl SpatialDeclaration {
 
 impl SpatialType {
     /// Create a new spatial type
-    pub fn new(type_info: ast::Type, spatial_props: TypeSpatialProps) -> Self {
+    pub fn new(type_info: KakeType, spatial_props: TypeSpatialProps) -> Self {
         Self {
             type_info,
             spatial_props,
@@ -547,12 +548,17 @@ mod tests {
 
     #[test]
     fn test_spatial_declaration() {
-        let decl = ast::Declaration::Function {
-            name: "test".to_string(),
-            parameters: Vec::new(),
+        let decl = ast::Declaration::Function(ast::FunctionDecl {
+            name: ast::Identifier {
+                name: "test".to_string(),
+                span: crate::error::Span::new(0, 4, 1, 1),
+            },
+            type_params: Vec::new(),
+            params: Vec::new(),
             return_type: None,
             body: ast::Expression::Literal(ast::Literal::Integer(42)),
-        };
+            span: crate::error::Span::new(0, 10, 1, 1),
+        });
 
         let mut props = DeclarationSpatialProps::default();
         props.starts_section = true;
@@ -569,7 +575,7 @@ mod tests {
 
     #[test]
     fn test_spatial_type() {
-        let type_info = ast::Type::Integer;
+        let type_info = KakeType::Int;
         let mut props = TypeSpatialProps::default();
         props.complexity = TypeComplexity::Complex;
 

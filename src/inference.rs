@@ -1,10 +1,7 @@
 use crate::ast::*;
 use crate::error::{Error, Result};
 use crate::types::*;
-use petgraph::{Directed, Graph};
 use std::collections::{HashMap, HashSet};
-
-pub type InferenceGraph = Graph<TypeNode, ConstraintEdge, Directed>;
 
 #[derive(Debug, Clone)]
 pub struct TypeNode {
@@ -29,7 +26,6 @@ pub enum ConstraintKind {
 
 pub struct TypeInference {
     context: TypeContext,
-    graph: InferenceGraph,
     substitution: Substitution,
 }
 
@@ -39,7 +35,6 @@ impl TypeInference {
     pub fn new() -> Self {
         Self {
             context: TypeContext::new(),
-            graph: Graph::new(),
             substitution: HashMap::new(),
         }
     }
@@ -76,7 +71,7 @@ impl TypeInference {
         Ok(bindings)
     }
 
-    fn infer_function_signature(&mut self, func: &FunctionDecl) -> Result<TypeScheme> {
+    pub fn infer_function_signature(&mut self, func: &FunctionDecl) -> Result<TypeScheme> {
         self.context.env.enter_level();
 
         // Create type variables for parameters
@@ -138,7 +133,7 @@ impl TypeInference {
         Ok(())
     }
 
-    fn infer_expression(&mut self, expr: &Expression) -> Result<Type> {
+    pub fn infer_expression(&mut self, expr: &Expression) -> Result<Type> {
         match expr {
             Expression::Literal(lit) => Ok(self.infer_literal(lit)),
             Expression::Identifier(id) => self.infer_identifier(id),
@@ -164,8 +159,8 @@ impl TypeInference {
     }
 
     fn infer_identifier(&mut self, id: &Identifier) -> Result<Type> {
-        if let Some(scheme) = self.context.env.lookup(&id.name) {
-            Ok(self.instantiate(scheme))
+        if let Some(scheme) = self.context.env.lookup(&id.name).cloned() {
+            Ok(self.instantiate(&scheme))
         } else {
             Err(Error::Type {
                 src: String::new(), // TODO: Add source
@@ -340,7 +335,7 @@ impl TypeInference {
         Ok(())
     }
 
-    fn unify(&mut self, t1: &Type, t2: &Type, span: crate::error::Span) -> Result<()> {
+    pub fn unify(&mut self, t1: &Type, t2: &Type, span: crate::error::Span) -> Result<()> {
         match (t1, t2) {
             (Type::Var(var), ty) | (ty, Type::Var(var)) => {
                 if let Type::Var(other_var) = ty {
@@ -402,7 +397,7 @@ impl TypeInference {
         }
     }
 
-    fn occurs_check(&self, var_id: usize, ty: &Type) -> bool {
+    pub fn occurs_check(&self, var_id: usize, ty: &Type) -> bool {
         match ty {
             Type::Var(var) => var.id == var_id,
             Type::Function {
@@ -418,7 +413,7 @@ impl TypeInference {
         }
     }
 
-    fn instantiate(&mut self, scheme: &TypeScheme) -> Type {
+    pub fn instantiate(&mut self, scheme: &TypeScheme) -> Type {
         let mut substitution = HashMap::new();
 
         for type_var in &scheme.forall {

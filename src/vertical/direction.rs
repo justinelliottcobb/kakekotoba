@@ -36,23 +36,20 @@ impl DirectionInfo {
 
 /// Analyzes text direction for mixed content
 pub struct DirectionAnalyzer {
-    bidi_info: BidiInfo,
+    levels: Vec<Level>,
 }
 
 impl DirectionAnalyzer {
     /// Create a new direction analyzer
     pub fn new(text: &str) -> Self {
-        Self {
-            bidi_info: BidiInfo::new(text, None),
-        }
+        let bidi_info = BidiInfo::new(text, None);
+        let levels = bidi_info.levels.clone();
+        Self { levels }
     }
 
     /// Get direction info for a specific byte range
-    pub fn direction_at_range(&self, start: usize, end: usize) -> Result<DirectionInfo> {
-        // Get the bidirectional level at the start position
-        let levels = self.bidi_info.levels();
-
-        if let Some(level) = levels.get(start) {
+    pub fn direction_at_range(&self, start: usize, _end: usize) -> Result<DirectionInfo> {
+        if let Some(level) = self.levels.get(start) {
             Ok(DirectionInfo::from_bidi_level(
                 *level,
                 super::WritingDirection::VerticalTbRl, // Default for Japanese
@@ -68,31 +65,29 @@ impl DirectionAnalyzer {
 
     /// Check if the text contains mixed writing directions
     pub fn has_mixed_directions(&self) -> bool {
-        let levels = self.bidi_info.levels();
-        if levels.is_empty() {
+        if self.levels.is_empty() {
             return false;
         }
 
-        let first_level = levels[0];
-        levels.iter().any(|&level| level != first_level)
+        let first_level = self.levels[0];
+        self.levels.iter().any(|&level| level != first_level)
     }
 
     /// Get all direction changes in the text
     pub fn direction_changes(&self) -> Vec<(usize, DirectionInfo)> {
         let mut changes = Vec::new();
-        let levels = self.bidi_info.levels();
 
-        if levels.is_empty() {
+        if self.levels.is_empty() {
             return changes;
         }
 
-        let mut current_level = levels[0];
+        let mut current_level = self.levels[0];
         changes.push((
             0,
             DirectionInfo::from_bidi_level(current_level, super::WritingDirection::VerticalTbRl),
         ));
 
-        for (i, &level) in levels.iter().enumerate().skip(1) {
+        for (i, &level) in self.levels.iter().enumerate().skip(1) {
             if level != current_level {
                 current_level = level;
                 changes.push((
@@ -112,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_direction_info_creation() {
-        let info = DirectionInfo::new(false, 0, super::WritingDirection::VerticalTbRl);
+        let info = DirectionInfo::new(false, 0, crate::vertical::WritingDirection::VerticalTbRl);
         assert!(!info.is_rtl);
         assert_eq!(info.level, 0);
     }

@@ -57,7 +57,10 @@ pub trait SpatialVisitorMut {
     fn visit_node_mut(&mut self, node: &mut SpatialNode) {
         self.enter_node_mut(node);
 
-        match &mut node.content {
+        // Take content temporarily to avoid double mutable borrow
+        let mut content = std::mem::replace(&mut node.content, SpatialContent::Program);
+
+        match &mut content {
             SpatialContent::Expression(expr) => self.visit_expression_mut(node, expr),
             SpatialContent::Statement(stmt) => self.visit_statement_mut(node, stmt),
             SpatialContent::Declaration(decl) => self.visit_declaration_mut(node, decl),
@@ -65,6 +68,9 @@ pub trait SpatialVisitorMut {
             SpatialContent::Block(nodes) => self.visit_block_mut(node, nodes),
             SpatialContent::Program => self.visit_program_mut(node),
         }
+
+        // Restore content
+        node.content = content;
 
         // Visit children
         for child in &mut node.children {
@@ -272,7 +278,7 @@ impl SpatialVisitor for SpatialValidator {
         if node.span.start > node.span.end {
             self.errors.push(SpatialValidationError::InvalidSpan {
                 node_id: node.id,
-                span: node.span,
+                span: node.span.clone(),
             });
         }
 
@@ -414,7 +420,7 @@ pub mod queries {
     }
 
     /// Calculate metrics for a spatial AST
-    pub fn calculate_metrics(root: &SpatialNode) -> super::SpatialMetrics {
+    pub fn calculate_metrics(root: &SpatialNode) -> super::super::SpatialMetrics {
         let mut calculator = MetricsCalculator::new();
         calculator.visit_node(root);
         calculator.metrics()

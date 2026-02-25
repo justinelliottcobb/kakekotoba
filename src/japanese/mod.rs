@@ -16,6 +16,7 @@ pub use keywords::*;
 pub use normalization::*;
 
 /// Core Japanese text analyzer for programming language constructs
+#[derive(Debug)]
 pub struct JapaneseAnalyzer {
     /// Keyword detector
     keyword_detector: KeywordDetector,
