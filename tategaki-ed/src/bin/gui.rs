@@ -39,15 +39,12 @@ impl TategakiApp {
 #[cfg(feature = "gpui")]
 impl Render for TategakiApp {
     fn render(&mut self, cx: &mut ViewContext<Self>) -> impl IntoElement {
-        div()
-            .size_full()
-            .bg(rgb(0x1e1e1e))
-            .child(
-                div()
-                    .id("editor-container")
-                    .size_full()
-                    .child(self.editor.render(cx))
-            )
+        div().size_full().bg(rgb(0x1e1e1e)).child(
+            div()
+                .id("editor-container")
+                .size_full()
+                .child(self.editor.render(cx)),
+        )
     }
 }
 
@@ -61,7 +58,7 @@ fn main() -> Result<()> {
             Arg::new("file")
                 .help("File to open")
                 .value_name("FILE")
-                .index(1)
+                .index(1),
         )
         .arg(
             Arg::new("direction")
@@ -69,7 +66,7 @@ fn main() -> Result<()> {
                 .short('d')
                 .help("Text direction")
                 .value_parser(["vertical", "horizontal"])
-                .default_value("vertical")
+                .default_value("vertical"),
         )
         .arg(
             Arg::new("font-size")
@@ -77,19 +74,19 @@ fn main() -> Result<()> {
                 .short('s')
                 .help("Font size")
                 .value_parser(clap::value_parser!(u32))
-                .default_value("14")
+                .default_value("14"),
         )
         .arg(
             Arg::new("enable-ime")
                 .long("enable-ime")
                 .help("Enable Japanese IME")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("debug")
                 .long("debug")
                 .help("Enable debug mode")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .get_matches();
 
@@ -125,7 +122,7 @@ fn main() -> Result<()> {
         App::new().run(|cx: &mut AppContext| {
             // Create main window
             let bounds = Bounds::centered(None, size(px(1200.0), px(800.0)), cx);
-            
+
             cx.open_window(
                 WindowOptions {
                     window_bounds: Some(WindowBounds::Windowed(bounds)),
@@ -143,19 +140,20 @@ fn main() -> Result<()> {
                 },
                 |cx| {
                     let mut app = TategakiApp::new(config);
-                    
+
                     // Load file if provided
                     if let Some(path) = file_path {
                         if let Err(e) = app.load_file(&path) {
                             eprintln!("Error loading file: {}", e);
                         }
                     }
-                    
+
                     cx.new_view(|_| app)
                 },
-            ).unwrap();
+            )
+            .unwrap();
         });
-        
+
         Ok(())
     }
 
@@ -164,7 +162,7 @@ fn main() -> Result<()> {
         eprintln!("Error: GPUI feature not enabled. This binary requires the 'gpui' feature.");
         eprintln!("Build with: cargo build --features gpui --bin gui");
         Err(TategakiError::Configuration(
-            "GPUI feature not enabled".to_string()
+            "GPUI feature not enabled".to_string(),
         ))
     }
 }
@@ -224,7 +222,7 @@ impl TategakiApp {
             TextDirection::VerticalTopToBottom => TextDirection::HorizontalLeftToRight,
             TextDirection::HorizontalLeftToRight => TextDirection::VerticalTopToBottom,
         };
-        
+
         // Update editor with new direction
         self.editor = GraphicalVerticalEditor::new(self.config.clone());
         cx.notify();

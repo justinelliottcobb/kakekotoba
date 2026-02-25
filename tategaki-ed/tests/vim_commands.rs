@@ -9,9 +9,8 @@
 //! - Multi-key commands (gg, dd, yy, dw)
 
 use tategaki_ed::{
-    backend::{EditorMode, EditorCommand, KeyboardHandler, KeyInput},
-    TextDirection,
-    Result,
+    backend::{EditorCommand, EditorMode, KeyInput, KeyboardHandler},
+    Result, TextDirection,
 };
 
 // ============================================================================
@@ -397,7 +396,10 @@ fn test_visual_mode_delete() {
     let cmd = handler.process_key(KeyInput::new("d")).unwrap();
     // In normal mode, this would be NoOp (waiting for second key)
     // This tests the command exists
-    assert!(matches!(cmd, EditorCommand::NoOp | EditorCommand::DeleteChar));
+    assert!(matches!(
+        cmd,
+        EditorCommand::NoOp | EditorCommand::DeleteChar
+    ));
 }
 
 // ============================================================================

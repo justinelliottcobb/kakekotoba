@@ -3,9 +3,9 @@
 //! This module provides the foundational tools for handling vertically-oriented
 //! programming languages, including bidirectional text processing and 2D positioning.
 
+use crate::error::Result;
 use unicode_bidi::{BidiInfo, Level};
 use unicode_segmentation::UnicodeSegmentation;
-use crate::error::Result;
 
 pub mod direction;
 pub mod position;
@@ -45,7 +45,7 @@ impl VerticalProcessor {
     pub fn new(content: &str) -> Self {
         let bidi_info = BidiInfo::new(content, None);
         let direction = Self::detect_writing_direction(&bidi_info);
-        
+
         Self {
             bidi_info: Some(bidi_info),
             direction,
@@ -82,14 +82,14 @@ impl VerticalProcessor {
     pub fn grapheme_clusters(&self) -> Vec<(String, Position2D)> {
         let mut clusters = Vec::new();
         let mut byte_offset = 0;
-        
+
         for cluster in self.content.graphemes(true) {
             // TODO: Calculate proper 2D position based on writing direction
             let pos = Position2D::new(0, clusters.len(), byte_offset);
             clusters.push((cluster.to_string(), pos));
             byte_offset += cluster.len();
         }
-        
+
         clusters
     }
 }

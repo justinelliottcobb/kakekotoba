@@ -1,6 +1,6 @@
 //! Visitor pattern implementation for spatial ASTs
 
-use super::{SpatialNode, SpatialContent, SpatialValidationError, NodeId};
+use super::{NodeId, SpatialContent, SpatialNode, SpatialValidationError};
 use crate::vertical::{Position2D, Span2D};
 
 /// Trait for visiting spatial AST nodes
@@ -8,7 +8,7 @@ pub trait SpatialVisitor {
     /// Visit a spatial node
     fn visit_node(&mut self, node: &SpatialNode) {
         self.enter_node(node);
-        
+
         match &node.content {
             SpatialContent::Expression(expr) => self.visit_expression(node, expr),
             SpatialContent::Statement(stmt) => self.visit_statement(node, stmt),
@@ -81,13 +81,28 @@ pub trait SpatialVisitorMut {
     fn exit_node_mut(&mut self, _node: &mut SpatialNode) {}
 
     /// Visit an expression node mutably
-    fn visit_expression_mut(&mut self, _node: &mut SpatialNode, _expr: &mut super::SpatialExpression) {}
+    fn visit_expression_mut(
+        &mut self,
+        _node: &mut SpatialNode,
+        _expr: &mut super::SpatialExpression,
+    ) {
+    }
 
     /// Visit a statement node mutably
-    fn visit_statement_mut(&mut self, _node: &mut SpatialNode, _stmt: &mut super::SpatialStatement) {}
+    fn visit_statement_mut(
+        &mut self,
+        _node: &mut SpatialNode,
+        _stmt: &mut super::SpatialStatement,
+    ) {
+    }
 
     /// Visit a declaration node mutably
-    fn visit_declaration_mut(&mut self, _node: &mut SpatialNode, _decl: &mut super::SpatialDeclaration) {}
+    fn visit_declaration_mut(
+        &mut self,
+        _node: &mut SpatialNode,
+        _decl: &mut super::SpatialDeclaration,
+    ) {
+    }
 
     /// Visit a type node mutably
     fn visit_type_mut(&mut self, _node: &mut SpatialNode, _ty: &mut super::SpatialType) {}
@@ -193,12 +208,12 @@ impl MetricsCalculator {
         if self.node_count > 0 {
             self.metrics.avg_indentation = self.indentation_sum as f64 / self.node_count as f64;
         }
-        
+
         // Calculate density (nodes per unit coverage)
         if self.metrics.total_coverage > 0 {
             self.metrics.density = self.node_count as f64 / self.metrics.total_coverage as f64;
         }
-        
+
         self.metrics
     }
 }
@@ -207,18 +222,18 @@ impl SpatialVisitor for MetricsCalculator {
     fn enter_node(&mut self, node: &SpatialNode) {
         self.node_count += 1;
         self.current_depth += 1;
-        
+
         // Update max depth
         if self.current_depth > self.metrics.max_depth {
             self.metrics.max_depth = self.current_depth;
         }
-        
+
         // Add to indentation sum
         self.indentation_sum += node.metadata.indentation_level;
-        
+
         // Add to total coverage
         self.metrics.total_coverage += node.span.byte_length();
-        
+
         // Count blocks
         if node.metadata.starts_block {
             self.metrics.block_count += 1;
@@ -282,8 +297,8 @@ pub struct NodeCollector<F> {
     results: Vec<NodeId>,
 }
 
-impl<F> NodeCollector<F> 
-where 
+impl<F> NodeCollector<F>
+where
     F: Fn(&SpatialNode) -> bool,
 {
     /// Create a new node collector with a predicate
@@ -368,7 +383,7 @@ impl DeepestNodeFinder {
 impl SpatialVisitor for DeepestNodeFinder {
     fn enter_node(&mut self, node: &SpatialNode) {
         self.current_depth += 1;
-        
+
         if node.contains(self.position) && self.current_depth > self.max_depth {
             self.deepest_node = Some(node.id);
             self.max_depth = self.current_depth;
@@ -451,10 +466,10 @@ mod tests {
     fn test_position_query() {
         let node = create_test_node(1, Position2D::new(0, 0, 0), Position2D::new(10, 10, 100));
         let mut query = PositionQuery::new(Position2D::new(5, 5, 50));
-        
+
         query.visit_node(&node);
         let results = query.take_results();
-        
+
         assert_eq!(results.len(), 1);
         assert_eq!(results[0], 1);
     }
@@ -464,10 +479,10 @@ mod tests {
         let node = create_test_node(1, Position2D::new(0, 0, 0), Position2D::new(10, 10, 100));
         let range = Span2D::new(Position2D::new(5, 5, 50), Position2D::new(15, 15, 150));
         let mut query = RangeQuery::new(range);
-        
+
         query.visit_node(&node);
         let results = query.take_results();
-        
+
         assert_eq!(results.len(), 1);
         assert_eq!(results[0], 1);
     }
@@ -476,10 +491,10 @@ mod tests {
     fn test_metrics_calculator() {
         let node = create_test_node(1, Position2D::new(0, 0, 0), Position2D::new(10, 10, 100));
         let mut calculator = MetricsCalculator::new();
-        
+
         calculator.visit_node(&node);
         let metrics = calculator.metrics();
-        
+
         assert_eq!(metrics.total_nodes, 1);
         assert_eq!(metrics.max_depth, 1);
         assert_eq!(metrics.total_coverage, 100);
@@ -490,24 +505,27 @@ mod tests {
         // Create a node with invalid span (end before start)
         let mut node = create_test_node(1, Position2D::new(10, 10, 100), Position2D::new(0, 0, 0));
         node.span = Span2D::new(Position2D::new(10, 10, 100), Position2D::new(0, 0, 0));
-        
+
         let mut validator = SpatialValidator::new();
         validator.visit_node(&node);
         let errors = validator.errors();
-        
+
         assert_eq!(errors.len(), 1);
-        assert!(matches!(errors[0], SpatialValidationError::InvalidSpan { .. }));
+        assert!(matches!(
+            errors[0],
+            SpatialValidationError::InvalidSpan { .. }
+        ));
     }
 
     #[test]
     fn test_node_collector() {
         let node = create_test_node(1, Position2D::new(0, 0, 0), Position2D::new(10, 10, 100));
         let collector = NodeCollector::new(|n| n.id == 1);
-        
+
         let mut visitor = collector;
         visitor.visit_node(&node);
         let results = visitor.take_results();
-        
+
         assert_eq!(results.len(), 1);
         assert_eq!(results[0], 1);
     }
@@ -516,9 +534,9 @@ mod tests {
     fn test_reading_order_updater() {
         let mut node = create_test_node(1, Position2D::new(0, 0, 0), Position2D::new(10, 10, 100));
         let mut updater = ReadingOrderUpdater::new();
-        
+
         updater.visit_node_mut(&mut node);
-        
+
         assert_eq!(node.metadata.reading_order, Some(0));
         assert_eq!(updater.final_order(), 1);
     }
@@ -526,16 +544,16 @@ mod tests {
     #[test]
     fn test_convenience_functions() {
         let node = create_test_node(1, Position2D::new(0, 0, 0), Position2D::new(10, 10, 100));
-        
+
         let pos_results = queries::nodes_at_position(&node, Position2D::new(5, 5, 50));
         assert_eq!(pos_results.len(), 1);
-        
+
         let metrics = queries::calculate_metrics(&node);
         assert_eq!(metrics.total_nodes, 1);
-        
+
         let errors = queries::validate_ast(&node);
         assert!(errors.is_empty());
-        
+
         let deepest = queries::deepest_node_at(&node, Position2D::new(5, 5, 50));
         assert_eq!(deepest, Some(1));
     }

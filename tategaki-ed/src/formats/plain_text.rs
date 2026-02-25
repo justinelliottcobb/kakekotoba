@@ -1,8 +1,8 @@
 //! Plain text file format support
 
-use super::{FileHandler, FileMetadata, FileFormat};
+use super::{FileFormat, FileHandler, FileMetadata};
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
 use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
 use std::path::Path;
 
 /// Plain text file handler
@@ -26,40 +26,44 @@ impl PlainTextHandler {
 
     /// Read file content as string
     fn read_file_content(&self, path: &Path) -> Result<String> {
-        std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(std::io::Error::new(
+        std::fs::read_to_string(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
                 e.kind(),
-                format!("Failed to read file {}: {}", path.display(), e)
-            )))
+                format!("Failed to read file {}: {}", path.display(), e),
+            ))
+        })
     }
 
     /// Write string content to file
     fn write_file_content(&self, content: &str, path: &Path) -> Result<()> {
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(std::io::Error::new(
+            std::fs::create_dir_all(parent).map_err(|e| {
+                TategakiError::Io(std::io::Error::new(
                     e.kind(),
-                    format!("Failed to create directory {}: {}", parent.display(), e)
-                )))?;
+                    format!("Failed to create directory {}: {}", parent.display(), e),
+                ))
+            })?;
         }
 
-        std::fs::write(path, content)
-            .map_err(|e| TategakiError::Io(std::io::Error::new(
+        std::fs::write(path, content).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
                 e.kind(),
-                format!("Failed to write file {}: {}", path.display(), e)
-            )))
+                format!("Failed to write file {}: {}", path.display(), e),
+            ))
+        })
     }
 
     /// Detect text direction from content heuristics
     fn detect_text_direction(&self, content: &str) -> TextDirection {
         // Simple heuristic: if there are more CJK characters, assume vertical
-        let cjk_count = content.chars()
+        let cjk_count = content
+            .chars()
             .filter(|&c| self.is_cjk_character(c))
             .count();
-        
+
         let total_chars = content.chars().filter(|&c| !c.is_whitespace()).count();
-        
+
         if total_chars > 0 && (cjk_count as f32 / total_chars as f32) > 0.3 {
             TextDirection::VerticalTopToBottom
         } else {
@@ -107,13 +111,13 @@ impl FileHandler for PlainTextHandler {
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)> {
         let content = self.read_file_content(path)?;
         let normalized_content = self.normalize_line_endings(&content);
-        
+
         // Detect text direction from content
         let detected_direction = self.detect_text_direction(&normalized_content);
-        
+
         // Create buffer
         let buffer = VerticalTextBuffer::from_text(&normalized_content, detected_direction)?;
-        
+
         // Create metadata
         let metadata = FileMetadata {
             format: FileFormat::PlainText,
@@ -124,11 +128,16 @@ impl FileHandler for PlainTextHandler {
             modified_at: path.metadata().ok().and_then(|m| m.modified().ok()),
             properties: std::collections::HashMap::new(),
         };
-        
+
         Ok((buffer, metadata))
     }
 
-    fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()> {
+    fn save(
+        &self,
+        buffer: &VerticalTextBuffer,
+        metadata: &FileMetadata,
+        path: &Path,
+    ) -> Result<()> {
         let content = buffer.as_text();
         let platform_content = self.platform_line_endings(&content);
         self.write_file_content(&platform_content, path)
@@ -146,21 +155,25 @@ impl FileHandler for PlainTextHandler {
         if !path.exists() {
             return Err(TategakiError::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
-                format!("File does not exist: {}", path.display())
+                format!("File does not exist: {}", path.display()),
             )));
         }
 
         // Check if file is binary
         if crate::formats::utils::is_binary_file(path)? {
             return Err(TategakiError::InvalidFormat(
-                "File appears to be binary, not plain text".to_string()
+                "File appears to be binary, not plain text".to_string(),
             ));
         }
 
         // Check file size (warn for very large files)
         let size = crate::formats::utils::file_size(path)?;
-        if size > 100 * 1024 * 1024 { // 100MB
-            eprintln!("Warning: Large file detected ({} bytes). Loading may be slow.", size);
+        if size > 100 * 1024 * 1024 {
+            // 100MB
+            eprintln!(
+                "Warning: Large file detected ({} bytes). Loading may be slow.",
+                size
+            );
         }
 
         // Check encoding
@@ -230,7 +243,7 @@ impl ExtendedPlainTextHandler {
     /// Apply line ending style
     fn apply_line_endings(&self, content: &str, style: LineEndingStyle) -> String {
         let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
-        
+
         match style {
             LineEndingStyle::Windows => normalized.replace('\n', "\r\n"),
             LineEndingStyle::Classic => normalized.replace('\n', "\r"),
@@ -253,15 +266,19 @@ impl FileHandler for ExtendedPlainTextHandler {
         if size > self.max_file_size {
             return Err(TategakiError::Io(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("File too large ({} bytes). Maximum allowed: {} bytes", size, self.max_file_size)
+                format!(
+                    "File too large ({} bytes). Maximum allowed: {} bytes",
+                    size, self.max_file_size
+                ),
             )));
         }
 
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(std::io::Error::new(
+        let content = std::fs::read_to_string(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
                 e.kind(),
-                format!("Failed to read file: {}", e)
-            )))?;
+                format!("Failed to read file: {}", e),
+            ))
+        })?;
 
         // Detect and store original line ending style
         let line_ending_style = if self.preserve_line_endings {
@@ -272,12 +289,15 @@ impl FileHandler for ExtendedPlainTextHandler {
 
         let normalized_content = content.replace("\r\n", "\n").replace('\r', "\n");
         let detected_direction = self.base.detect_text_direction(&normalized_content);
-        
+
         let buffer = VerticalTextBuffer::from_text(&normalized_content, detected_direction)?;
-        
+
         let mut properties = std::collections::HashMap::new();
-        properties.insert("line_endings".to_string(), format!("{:?}", line_ending_style));
-        
+        properties.insert(
+            "line_endings".to_string(),
+            format!("{:?}", line_ending_style),
+        );
+
         let metadata = FileMetadata {
             format: FileFormat::PlainText,
             text_direction: detected_direction,
@@ -287,13 +307,18 @@ impl FileHandler for ExtendedPlainTextHandler {
             modified_at: path.metadata().ok().and_then(|m| m.modified().ok()),
             properties,
         };
-        
+
         Ok((buffer, metadata))
     }
 
-    fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()> {
+    fn save(
+        &self,
+        buffer: &VerticalTextBuffer,
+        metadata: &FileMetadata,
+        path: &Path,
+    ) -> Result<()> {
         let content = buffer.as_text();
-        
+
         // Apply original line endings if preserved
         let final_content = if self.preserve_line_endings {
             if let Some(style_str) = metadata.properties.get("line_endings") {
@@ -335,7 +360,10 @@ impl FileHandler for ExtendedPlainTextHandler {
         if size > self.max_file_size {
             return Err(TategakiError::Io(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("File exceeds maximum size limit ({} > {})", size, self.max_file_size)
+                format!(
+                    "File exceeds maximum size limit ({} > {})",
+                    size, self.max_file_size
+                ),
             )));
         }
 
@@ -368,49 +396,64 @@ mod tests {
     #[test]
     fn test_text_direction_detection() {
         let handler = PlainTextHandler::new();
-        
+
         // Mostly ASCII should be horizontal
         let english_text = "Hello world! This is English text.";
-        assert_eq!(handler.detect_text_direction(english_text), TextDirection::HorizontalLeftToRight);
-        
+        assert_eq!(
+            handler.detect_text_direction(english_text),
+            TextDirection::HorizontalLeftToRight
+        );
+
         // Mostly CJK should be vertical
         let japanese_text = "こんにちは世界！これは日本語のテキストです。";
-        assert_eq!(handler.detect_text_direction(japanese_text), TextDirection::VerticalTopToBottom);
+        assert_eq!(
+            handler.detect_text_direction(japanese_text),
+            TextDirection::VerticalTopToBottom
+        );
     }
 
     #[test]
     fn test_line_ending_normalization() {
         let handler = PlainTextHandler::new();
-        
-        assert_eq!(handler.normalize_line_endings("line1\r\nline2"), "line1\nline2");
-        assert_eq!(handler.normalize_line_endings("line1\rline2"), "line1\nline2");
-        assert_eq!(handler.normalize_line_endings("line1\nline2"), "line1\nline2");
+
+        assert_eq!(
+            handler.normalize_line_endings("line1\r\nline2"),
+            "line1\nline2"
+        );
+        assert_eq!(
+            handler.normalize_line_endings("line1\rline2"),
+            "line1\nline2"
+        );
+        assert_eq!(
+            handler.normalize_line_endings("line1\nline2"),
+            "line1\nline2"
+        );
     }
 
     #[test]
     fn test_load_save_cycle() -> Result<()> {
         let handler = PlainTextHandler::new();
         let test_content = "Test content\nWith multiple lines\n日本語も含む";
-        
+
         // Create temporary file
         let temp_file = NamedTempFile::new().unwrap();
         std::fs::write(temp_file.path(), test_content).unwrap();
-        
+
         // Load file
         let (buffer, metadata) = handler.load(temp_file.path())?;
-        
+
         // Verify content
         assert_eq!(buffer.as_text(), test_content);
         assert_eq!(metadata.format, FileFormat::PlainText);
-        
+
         // Save to another temporary file
         let temp_file2 = NamedTempFile::new().unwrap();
         handler.save(&buffer, &metadata, temp_file2.path())?;
-        
+
         // Verify saved content matches
         let saved_content = std::fs::read_to_string(temp_file2.path()).unwrap();
         assert_eq!(saved_content, test_content);
-        
+
         Ok(())
     }
 
@@ -420,7 +463,7 @@ mod tests {
         handler.set_preserve_line_endings(true);
         handler.set_add_bom(false);
         handler.set_max_file_size(1024 * 1024); // 1MB
-        
+
         assert!(!handler.supports_spatial_metadata());
         assert_eq!(handler.file_extensions(), vec!["txt", "text"]);
     }
@@ -428,9 +471,18 @@ mod tests {
     #[test]
     fn test_line_ending_detection() {
         let handler = ExtendedPlainTextHandler::new();
-        
-        assert_eq!(handler.detect_line_endings("line1\r\nline2\r\n"), LineEndingStyle::Windows);
-        assert_eq!(handler.detect_line_endings("line1\nline2\n"), LineEndingStyle::Unix);
-        assert_eq!(handler.detect_line_endings("line1\rline2\r"), LineEndingStyle::Classic);
+
+        assert_eq!(
+            handler.detect_line_endings("line1\r\nline2\r\n"),
+            LineEndingStyle::Windows
+        );
+        assert_eq!(
+            handler.detect_line_endings("line1\nline2\n"),
+            LineEndingStyle::Unix
+        );
+        assert_eq!(
+            handler.detect_line_endings("line1\rline2\r"),
+            LineEndingStyle::Classic
+        );
     }
 }

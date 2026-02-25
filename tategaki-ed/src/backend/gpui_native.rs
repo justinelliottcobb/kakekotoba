@@ -3,11 +3,11 @@
 //! This module wraps the existing GPUI rendering interface to conform to
 //! the RenderBackend trait, allowing seamless backend switching.
 
+use super::{Color, CursorInfo, CursorStyle, Rect, RenderBackend, TextStyle};
+use crate::text_engine::TextDirection;
+use crate::{Result, TategakiError};
 #[cfg(feature = "gpui")]
 use gpui::*;
-use crate::{Result, TategakiError};
-use crate::text_engine::TextDirection;
-use super::{RenderBackend, Color, Rect, TextStyle, CursorInfo, CursorStyle};
 
 /// GPUI backend wrapper
 ///
@@ -35,9 +35,21 @@ enum RenderCommand {
         direction: TextDirection,
     },
     Cursor(CursorInfo),
-    Selection { bounds: Rect, color: Color },
-    Line { from: (f32, f32), to: (f32, f32), color: Color, thickness: f32 },
-    Rect { bounds: Rect, color: Color, filled: bool },
+    Selection {
+        bounds: Rect,
+        color: Color,
+    },
+    Line {
+        from: (f32, f32),
+        to: (f32, f32),
+        color: Color,
+        thickness: f32,
+    },
+    Rect {
+        bounds: Rect,
+        color: Color,
+        filled: bool,
+    },
 }
 
 impl GpuiBackend {
@@ -82,7 +94,12 @@ impl GpuiBackend {
                     // GPUI clearing is typically done by setting background
                     // This would need to be integrated with the view system
                 }
-                RenderCommand::Text { text, position, style, direction } => {
+                RenderCommand::Text {
+                    text,
+                    position,
+                    style,
+                    direction,
+                } => {
                     // GPUI text rendering would use cosmic-text or similar
                     // This is a placeholder - actual implementation would need
                     // to create text runs and render them
@@ -93,10 +110,19 @@ impl GpuiBackend {
                 RenderCommand::Selection { bounds, color } => {
                     // Render selection highlight
                 }
-                RenderCommand::Line { from, to, color, thickness } => {
+                RenderCommand::Line {
+                    from,
+                    to,
+                    color,
+                    thickness,
+                } => {
                     // GPUI line rendering
                 }
-                RenderCommand::Rect { bounds, color, filled } => {
+                RenderCommand::Rect {
+                    bounds,
+                    color,
+                    filled,
+                } => {
                     // GPUI rectangle rendering
                 }
             }
@@ -155,7 +181,8 @@ impl RenderBackend for GpuiBackend {
     fn render_cursor(&mut self, cursor: &CursorInfo) -> Result<()> {
         #[cfg(feature = "gpui")]
         {
-            self.render_commands.push(RenderCommand::Cursor(cursor.clone()));
+            self.render_commands
+                .push(RenderCommand::Cursor(cursor.clone()));
         }
         Ok(())
     }
@@ -163,7 +190,8 @@ impl RenderBackend for GpuiBackend {
     fn render_selection(&mut self, bounds: Rect, color: Color) -> Result<()> {
         #[cfg(feature = "gpui")]
         {
-            self.render_commands.push(RenderCommand::Selection { bounds, color });
+            self.render_commands
+                .push(RenderCommand::Selection { bounds, color });
         }
         Ok(())
     }

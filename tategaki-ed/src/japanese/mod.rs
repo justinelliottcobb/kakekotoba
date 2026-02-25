@@ -5,16 +5,16 @@
 
 use crate::{Result, TategakiError};
 use serde::{Deserialize, Serialize};
-use unicode_segmentation::UnicodeSegmentation;
 use unicode_normalization::UnicodeNormalization;
+use unicode_segmentation::UnicodeSegmentation;
 
-pub mod input_method;
 pub mod character_handler;
+pub mod input_method;
 pub mod normalization;
 pub mod ruby_text;
 
-pub use input_method::*;
 pub use character_handler::*;
+pub use input_method::*;
 pub use normalization::*;
 pub use ruby_text::*;
 
@@ -163,7 +163,7 @@ impl JapaneseInputMethod {
                     let mut chars: Vec<char> = self.composition_buffer.chars().collect();
                     chars.pop();
                     self.composition_buffer = chars.into_iter().collect();
-                    
+
                     if self.composition_buffer.is_empty() {
                         self.state = InputState::Direct;
                         Ok(InputResult::Cancel)
@@ -242,9 +242,9 @@ impl JapaneseInputMethod {
         // Placeholder candidate generation
         // In a real implementation, this would use a dictionary and ML models
         self.candidates.clear();
-        
+
         let input = &self.composition_buffer;
-        
+
         // Simple hiragana to kanji conversion examples
         match input.as_str() {
             "かんすう" => {
@@ -293,7 +293,7 @@ impl JapaneseInputMethod {
                 });
             }
         }
-        
+
         Ok(())
     }
 
@@ -420,7 +420,10 @@ impl CharacterHandler {
     pub fn character_width(&self, ch: char) -> f32 {
         match self.classify_character(ch) {
             CharacterClass::Ascii | CharacterClass::HalfWidthKatakana => 1.0,
-            CharacterClass::Hiragana | CharacterClass::Katakana | CharacterClass::Kanji | CharacterClass::FullWidthAscii => 2.0,
+            CharacterClass::Hiragana
+            | CharacterClass::Katakana
+            | CharacterClass::Kanji
+            | CharacterClass::FullWidthAscii => 2.0,
             CharacterClass::Whitespace => 1.0,
             CharacterClass::Other => 1.0,
         }
@@ -428,7 +431,9 @@ impl CharacterHandler {
 
     /// Normalize text for consistent processing
     pub fn normalize_text(&self, text: &str) -> String {
-        self.normalizer.normalize(text).unwrap_or_else(|_| text.to_string())
+        self.normalizer
+            .normalize(text)
+            .unwrap_or_else(|_| text.to_string())
     }
 
     /// Convert between character types
@@ -567,19 +572,22 @@ mod tests {
     #[test]
     fn test_character_classification() {
         let handler = CharacterHandler::new();
-        
+
         assert_eq!(handler.classify_character('あ'), CharacterClass::Hiragana);
         assert_eq!(handler.classify_character('ア'), CharacterClass::Katakana);
         assert_eq!(handler.classify_character('漢'), CharacterClass::Kanji);
         assert_eq!(handler.classify_character('a'), CharacterClass::Ascii);
-        assert_eq!(handler.classify_character('ａ'), CharacterClass::FullWidthAscii);
+        assert_eq!(
+            handler.classify_character('ａ'),
+            CharacterClass::FullWidthAscii
+        );
     }
 
     #[test]
     fn test_character_width_calculation() {
         let handler = CharacterHandler::new();
-        
-        assert_eq!(handler.character_width('a'), 1.0);  // Half-width
+
+        assert_eq!(handler.character_width('a'), 1.0); // Half-width
         assert_eq!(handler.character_width('あ'), 2.0); // Full-width
         assert_eq!(handler.character_width('漢'), 2.0); // Full-width
     }
@@ -587,11 +595,23 @@ mod tests {
     #[test]
     fn test_character_conversion() {
         let handler = CharacterHandler::new();
-        
-        assert_eq!(handler.convert_character('あ', ConversionTarget::Katakana), 'ア');
-        assert_eq!(handler.convert_character('ア', ConversionTarget::Hiragana), 'あ');
-        assert_eq!(handler.convert_character('a', ConversionTarget::FullWidth), 'ａ');
-        assert_eq!(handler.convert_character('ａ', ConversionTarget::HalfWidth), 'a');
+
+        assert_eq!(
+            handler.convert_character('あ', ConversionTarget::Katakana),
+            'ア'
+        );
+        assert_eq!(
+            handler.convert_character('ア', ConversionTarget::Hiragana),
+            'あ'
+        );
+        assert_eq!(
+            handler.convert_character('a', ConversionTarget::FullWidth),
+            'ａ'
+        );
+        assert_eq!(
+            handler.convert_character('ａ', ConversionTarget::HalfWidth),
+            'a'
+        );
     }
 
     #[test]
@@ -606,7 +626,7 @@ mod tests {
         let mut ime = JapaneseInputMethod::new();
         ime.composition_buffer = "かんすう".to_string();
         ime.generate_candidates().unwrap();
-        
+
         let candidates = ime.candidates();
         assert!(!candidates.is_empty());
         assert_eq!(candidates[0].text, "関数");

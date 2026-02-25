@@ -3,12 +3,12 @@
 //! This module provides a unified interface for rendering vertical text across
 //! different backends: GPU-accelerated (GPUI) and terminal-based (notcurses).
 
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
 use crate::spatial::SpatialPosition;
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 
-pub mod selector;
 pub mod keyboard;
+pub mod selector;
 
 #[cfg(feature = "gpui")]
 pub mod gpui_native;
@@ -19,8 +19,8 @@ pub mod terminal;
 #[cfg(feature = "notcurses")]
 pub mod adapter;
 
+pub use keyboard::{EditorCommand, EditorMode, KeyInput, KeyboardHandler};
 pub use selector::*;
-pub use keyboard::{EditorMode, EditorCommand, KeyboardHandler, KeyInput};
 
 /// Color representation that works across backends
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -39,7 +39,10 @@ impl Color {
     pub fn from_hex(hex: &str) -> Result<Self> {
         let hex = hex.trim_start_matches('#');
         if hex.len() != 6 && hex.len() != 8 {
-            return Err(TategakiError::Rendering(format!("Invalid color hex: {}", hex)));
+            return Err(TategakiError::Rendering(format!(
+                "Invalid color hex: {}",
+                hex
+            )));
         }
 
         let r = u8::from_str_radix(&hex[0..2], 16)
@@ -82,7 +85,12 @@ pub struct Rect {
 
 impl Rect {
     pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     pub fn contains(&self, x: f32, y: f32) -> bool {

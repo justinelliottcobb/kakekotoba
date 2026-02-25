@@ -3,16 +3,14 @@
 //! This binary provides a terminal UI for the tategaki vertical text editor,
 //! using the notcurses rendering backend with vim-like keyboard controls.
 
-use tategaki_ed::{
-    EditorConfig, TextDirection, VerticalTextBuffer,
-    backend::{
-        RenderBackend, terminal::TerminalBackend,
-        Color, TextStyle, Rect, CursorInfo, CursorStyle,
-        EditorMode, EditorCommand, KeyboardHandler, KeyInput,
-    },
-    SpatialPosition, Result, TategakiError,
-};
 use std::path::PathBuf;
+use tategaki_ed::{
+    backend::{
+        terminal::TerminalBackend, Color, CursorInfo, CursorStyle, EditorCommand, EditorMode,
+        KeyInput, KeyboardHandler, Rect, RenderBackend, TextStyle,
+    },
+    EditorConfig, Result, SpatialPosition, TategakiError, TextDirection, VerticalTextBuffer,
+};
 
 /// Command-line arguments
 #[derive(Debug)]
@@ -49,7 +47,11 @@ impl Args {
             }
         }
 
-        Self { file, vertical, debug }
+        Self {
+            file,
+            vertical,
+            debug,
+        }
     }
 }
 
@@ -124,7 +126,11 @@ impl TerminalEditor {
         let backend = TerminalBackend::new()?;
         let direction = config.text_direction;
         let keyboard = KeyboardHandler::new(direction);
-        let cursor = SpatialPosition { column: 0, row: 0, byte_offset: 0 };
+        let cursor = SpatialPosition {
+            column: 0,
+            row: 0,
+            byte_offset: 0,
+        };
 
         Ok(Self {
             backend,
@@ -142,9 +148,7 @@ impl TerminalEditor {
     }
 
     fn load_file(&mut self, path: PathBuf) -> Result<()> {
-        let content = std::fs::read_to_string(&path).map_err(|e| {
-            TategakiError::Io(e)
-        })?;
+        let content = std::fs::read_to_string(&path).map_err(|e| TategakiError::Io(e))?;
 
         self.lines = content.lines().map(|s| s.to_string()).collect();
         if self.lines.is_empty() {
@@ -153,7 +157,8 @@ impl TerminalEditor {
 
         self.file_path = Some(path);
         self.modified = false;
-        self.message = format!("Loaded: {} ({} lines)",
+        self.message = format!(
+            "Loaded: {} ({} lines)",
             self.file_path.as_ref().unwrap().display(),
             self.lines.len()
         );
@@ -180,7 +185,10 @@ impl TerminalEditor {
     }
 
     fn current_line(&self) -> &str {
-        self.lines.get(self.cursor.row).map(|s| s.as_str()).unwrap_or("")
+        self.lines
+            .get(self.cursor.row)
+            .map(|s| s.as_str())
+            .unwrap_or("")
     }
 
     fn current_line_mut(&mut self) -> &mut String {
@@ -205,7 +213,10 @@ impl TerminalEditor {
 
     fn execute_command(&mut self, command: &EditorCommand) -> Result<bool> {
         // Debug: Log ALL commands to see if execute_command is being called
-        if matches!(command, EditorCommand::DeleteCharBackward | EditorCommand::DeleteChar) {
+        if matches!(
+            command,
+            EditorCommand::DeleteCharBackward | EditorCommand::DeleteChar
+        ) {
             if let Ok(mut f) = std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
@@ -220,16 +231,16 @@ impl TerminalEditor {
             EditorCommand::NoOp => return Ok(false),
 
             // Mode changes (handled by keyboard handler)
-            EditorCommand::EnterNormalMode |
-            EditorCommand::EnterInsertMode |
-            EditorCommand::EnterInsertModeAfter |
-            EditorCommand::EnterInsertModeAtLineStart |
-            EditorCommand::EnterInsertModeAtLineEnd |
-            EditorCommand::EnterInsertModeNewLineBelow |
-            EditorCommand::EnterInsertModeNewLineAbove |
-            EditorCommand::EnterVisualMode |
-            EditorCommand::EnterVisualLineMode |
-            EditorCommand::EnterCommandMode => {
+            EditorCommand::EnterNormalMode
+            | EditorCommand::EnterInsertMode
+            | EditorCommand::EnterInsertModeAfter
+            | EditorCommand::EnterInsertModeAtLineStart
+            | EditorCommand::EnterInsertModeAtLineEnd
+            | EditorCommand::EnterInsertModeNewLineBelow
+            | EditorCommand::EnterInsertModeNewLineAbove
+            | EditorCommand::EnterVisualMode
+            | EditorCommand::EnterVisualLineMode
+            | EditorCommand::EnterCommandMode => {
                 // Mode change is handled by keyboard handler
                 return Ok(true);
             }
@@ -301,7 +312,11 @@ impl TerminalEditor {
                 if *ch == '\n' {
                     // Handle newline: split line at cursor
                     let current_line = self.current_line().to_string();
-                    let byte_pos: usize = current_line.chars().take(self.cursor.column).map(|c| c.len_utf8()).sum();
+                    let byte_pos: usize = current_line
+                        .chars()
+                        .take(self.cursor.column)
+                        .map(|c| c.len_utf8())
+                        .sum();
 
                     let (before, after) = current_line.split_at(byte_pos);
                     self.lines[self.cursor.row] = before.to_string();
@@ -341,8 +356,13 @@ impl TerminalEditor {
                     .open("/tmp/tategaki_delete_debug.log")
                 {
                     use std::io::Write;
-                    let _ = writeln!(f, "DeleteCharBackward: cursor.column={}, cursor.row={}, line='{}'",
-                        self.cursor.column, self.cursor.row, self.current_line());
+                    let _ = writeln!(
+                        f,
+                        "DeleteCharBackward: cursor.column={}, cursor.row={}, line='{}'",
+                        self.cursor.column,
+                        self.cursor.row,
+                        self.current_line()
+                    );
                 }
 
                 if self.cursor.column > 0 {
@@ -364,8 +384,14 @@ impl TerminalEditor {
                             .open("/tmp/tategaki_delete_debug.log")
                         {
                             use std::io::Write;
-                            let _ = writeln!(f, "  Deleted char '{}' at byte_pos={}, old_line='{}', new_line='{}'",
-                                ch, byte_pos, old_line, self.current_line());
+                            let _ = writeln!(
+                                f,
+                                "  Deleted char '{}' at byte_pos={}, old_line='{}', new_line='{}'",
+                                ch,
+                                byte_pos,
+                                old_line,
+                                self.current_line()
+                            );
                         }
                     }
                 } else if self.cursor.row > 0 {
@@ -416,7 +442,8 @@ impl TerminalEditor {
             }
             EditorCommand::Quit => {
                 if self.modified {
-                    self.message = "Unsaved changes! Use :q! to force quit or :wq to save".to_string();
+                    self.message =
+                        "Unsaved changes! Use :q! to force quit or :wq to save".to_string();
                 } else {
                     self.running = false;
                 }
@@ -481,7 +508,7 @@ impl TerminalEditor {
                     // Pass logical column number (idx) and row offset
                     self.backend.render_text(
                         line,
-                        (idx as f32, 1.0),  // Backend will position this from the right
+                        (idx as f32, 1.0), // Backend will position this from the right
                         &style,
                         self.config.text_direction,
                     )?;
@@ -489,7 +516,7 @@ impl TerminalEditor {
 
                 // Render cursor (convert logical to screen position)
                 let col_offset = self.cursor.row.saturating_sub(start_line);
-                let logical_col = col_offset as f32;  // Logical column from the right
+                let logical_col = col_offset as f32; // Logical column from the right
                 let logical_row = self.cursor.column as f32;
 
                 // Convert to screen coordinates: columns go right-to-left
@@ -565,8 +592,12 @@ impl TerminalEditor {
         match self.config.ui_layout.status_line_placement {
             tategaki_ed::StatusLinePlacement::Top => 0,
             tategaki_ed::StatusLinePlacement::Bottom => rows.saturating_sub(2),
-            tategaki_ed::StatusLinePlacement::OffsetFromTop(offset) => offset.min((rows - 1) as usize) as u32,
-            tategaki_ed::StatusLinePlacement::OffsetFromBottom(offset) => rows.saturating_sub(2 + offset as u32),
+            tategaki_ed::StatusLinePlacement::OffsetFromTop(offset) => {
+                offset.min((rows - 1) as usize) as u32
+            }
+            tategaki_ed::StatusLinePlacement::OffsetFromBottom(offset) => {
+                rows.saturating_sub(2 + offset as u32)
+            }
         }
     }
 
@@ -576,8 +607,12 @@ impl TerminalEditor {
         match self.config.ui_layout.command_line_placement {
             tategaki_ed::CommandLinePlacement::Top => 0,
             tategaki_ed::CommandLinePlacement::Bottom => rows.saturating_sub(1),
-            tategaki_ed::CommandLinePlacement::OffsetFromTop(offset) => offset.min((rows - 1) as usize) as u32,
-            tategaki_ed::CommandLinePlacement::OffsetFromBottom(offset) => rows.saturating_sub(1 + offset as u32),
+            tategaki_ed::CommandLinePlacement::OffsetFromTop(offset) => {
+                offset.min((rows - 1) as usize) as u32
+            }
+            tategaki_ed::CommandLinePlacement::OffsetFromBottom(offset) => {
+                rows.saturating_sub(1 + offset as u32)
+            }
         }
     }
 
@@ -594,7 +629,8 @@ impl TerminalEditor {
         let mode_name = self.keyboard.mode().display_name();
         let mode_jp = self.keyboard.mode().japanese_name();
         let modified_indicator = if self.modified { "[+]" } else { "" };
-        let file_name = self.file_path
+        let file_name = self
+            .file_path
             .as_ref()
             .and_then(|p| p.file_name())
             .and_then(|n| n.to_str())
@@ -701,14 +737,22 @@ impl TerminalEditor {
                         .open("/tmp/tategaki_backspace_debug.log")
                     {
                         use std::io::Write;
-                        let _ = writeln!(f, "After process_key: Command={:?}, Mode={:?}",
-                            command, self.keyboard.mode());
+                        let _ = writeln!(
+                            f,
+                            "After process_key: Command={:?}, Mode={:?}",
+                            command,
+                            self.keyboard.mode()
+                        );
                     }
                 }
 
                 if self.debug {
-                    self.message = format!("Mode: {:?}, Key: {:?}, Cmd: {:?}",
-                        self.keyboard.mode(), key_input, command);
+                    self.message = format!(
+                        "Mode: {:?}, Key: {:?}, Cmd: {:?}",
+                        self.keyboard.mode(),
+                        key_input,
+                        command
+                    );
                 }
 
                 // Execute mode changes through keyboard handler

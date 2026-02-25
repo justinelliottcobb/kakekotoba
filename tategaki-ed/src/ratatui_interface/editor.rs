@@ -9,9 +9,9 @@ use ratatui::{
     Frame,
 };
 
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
 use crate::spatial::{SpatialPosition, SpatialRange};
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 
 #[cfg(feature = "ratatui")]
 /// Terminal editor widget for vertical text
@@ -109,7 +109,11 @@ impl TerminalEditor {
         }
 
         let line_numbers = Paragraph::new(lines.join("\n"))
-            .style(Style::default().fg(Color::DarkGray).bg(self.background_color))
+            .style(
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .bg(self.background_color),
+            )
             .wrap(Wrap { trim: false });
 
         f.render_widget(line_numbers, line_number_area);
@@ -168,7 +172,9 @@ impl TerminalEditor {
         if position.column < self.scroll_offset.column {
             self.scroll_offset.column = position.column;
         } else if position.column >= self.scroll_offset.column + (viewport_width as usize) {
-            self.scroll_offset.column = position.column.saturating_sub((viewport_width as usize) - 1);
+            self.scroll_offset.column = position
+                .column
+                .saturating_sub((viewport_width as usize) - 1);
         }
     }
 
@@ -210,14 +216,18 @@ impl TerminalEditor {
     ) -> Option<(u16, u16)> {
         match direction {
             TextDirection::VerticalTopToBottom => {
-                if position.row < self.scroll_offset.row || position.column < self.scroll_offset.column {
+                if position.row < self.scroll_offset.row
+                    || position.column < self.scroll_offset.column
+                {
                     return None; // Position is scrolled off screen
                 }
 
                 let relative_row = position.row.saturating_sub(self.scroll_offset.row);
                 let relative_col = position.column.saturating_sub(self.scroll_offset.column);
 
-                if relative_row >= text_area.height as usize || relative_col >= text_area.width as usize {
+                if relative_row >= text_area.height as usize
+                    || relative_col >= text_area.width as usize
+                {
                     return None; // Position is outside viewport
                 }
 
@@ -227,14 +237,18 @@ impl TerminalEditor {
                 ))
             }
             TextDirection::HorizontalLeftToRight => {
-                if position.row < self.scroll_offset.row || position.column < self.scroll_offset.column {
+                if position.row < self.scroll_offset.row
+                    || position.column < self.scroll_offset.column
+                {
                     return None;
                 }
 
                 let relative_row = position.row.saturating_sub(self.scroll_offset.row);
                 let relative_col = position.column.saturating_sub(self.scroll_offset.column);
 
-                if relative_row >= text_area.height as usize || relative_col >= text_area.width as usize {
+                if relative_row >= text_area.height as usize
+                    || relative_col >= text_area.width as usize
+                {
                     return None;
                 }
 

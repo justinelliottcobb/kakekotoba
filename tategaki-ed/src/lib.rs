@@ -12,12 +12,12 @@
 //! - **Spatial Programming**: Layout-aware editing for spatial programming languages
 //! - **Mixed Script Support**: Seamless Japanese/ASCII code integration
 
-pub mod text_engine;
-pub mod spatial;
+pub mod backend;
+pub mod formats;
 pub mod japanese;
 pub mod programming;
-pub mod formats;
-pub mod backend;
+pub mod spatial;
+pub mod text_engine;
 pub mod ui;
 
 // Conditional interface modules
@@ -28,11 +28,11 @@ pub mod gpui_interface;
 pub mod ratatui_interface;
 
 // Re-export core types for convenience
-pub use text_engine::{VerticalTextBuffer, TextDirection, LayoutEngine};
-pub use spatial::{SpatialPosition, CoordinateSystem};
-pub use japanese::{JapaneseInputMethod, CharacterHandler};
-pub use backend::{RenderBackend, BackendType, BackendSelector, Color, Rect, TextStyle};
-pub use formats::{FileManager, FileFormat, FileMetadata, FileHandler};
+pub use backend::{BackendSelector, BackendType, Color, Rect, RenderBackend, TextStyle};
+pub use formats::{FileFormat, FileHandler, FileManager, FileMetadata};
+pub use japanese::{CharacterHandler, JapaneseInputMethod};
+pub use spatial::{CoordinateSystem, SpatialPosition};
+pub use text_engine::{LayoutEngine, TextDirection, VerticalTextBuffer};
 
 /// Error types for the tategaki editor
 #[derive(Debug, thiserror::Error)]

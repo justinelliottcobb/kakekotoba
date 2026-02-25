@@ -4,10 +4,10 @@
 //! coordinate system and rendering primitives to notcurses' cell-based
 //! terminal rendering.
 
-use crate::{Result, TategakiError};
-use crate::text_engine::TextDirection;
-use super::{Color, Rect, TextStyle, CursorInfo, RenderBackend};
 use super::terminal::TerminalBackend;
+use super::{Color, CursorInfo, Rect, RenderBackend, TextStyle};
+use crate::text_engine::TextDirection;
+use crate::{Result, TategakiError};
 
 /// Adapter for translating GPUI coordinates to terminal cells
 pub struct GpuiToNotcursesAdapter {
@@ -25,7 +25,7 @@ impl GpuiToNotcursesAdapter {
     pub fn new(backend: TerminalBackend) -> Result<Self> {
         // Typical monospace terminal cell dimensions
         // These can be adjusted based on actual terminal font metrics
-        let cell_width = 8.0;  // pixels per cell width
+        let cell_width = 8.0; // pixels per cell width
         let cell_height = 16.0; // pixels per cell height
         let avg_char_width = 1.0; // Average character width in cells
 
@@ -148,30 +148,18 @@ impl GpuiToNotcursesAdapter {
     }
 
     /// Paint a GPUI cursor as a terminal cursor
-    pub fn paint_cursor(
-        &mut self,
-        cursor: &CursorInfo,
-    ) -> Result<()> {
+    pub fn paint_cursor(&mut self, cursor: &CursorInfo) -> Result<()> {
         self.backend.render_cursor(cursor)
     }
 
     /// Paint a GPUI selection as terminal background highlighting
-    pub fn paint_selection(
-        &mut self,
-        pixel_bounds: Rect,
-        color: Color,
-    ) -> Result<()> {
+    pub fn paint_selection(&mut self, pixel_bounds: Rect, color: Color) -> Result<()> {
         let cell_bounds = self.pixels_bounds_to_cells(pixel_bounds);
         self.backend.render_selection(cell_bounds, color)
     }
 
     /// Paint a GPUI rectangle in the terminal
-    pub fn paint_rect(
-        &mut self,
-        pixel_bounds: Rect,
-        color: Color,
-        filled: bool,
-    ) -> Result<()> {
+    pub fn paint_rect(&mut self, pixel_bounds: Rect, color: Color, filled: bool) -> Result<()> {
         let cell_bounds = self.pixels_bounds_to_cells(pixel_bounds);
         self.backend.render_rect(cell_bounds, color, filled)
     }

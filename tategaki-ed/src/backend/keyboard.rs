@@ -3,9 +3,9 @@
 //! This module provides modal editing inspired by Vim, adapted for vertical
 //! Japanese text (tategaki) where the navigation semantics are rotated.
 
-use crate::{Result, TategakiError};
-use crate::text_engine::TextDirection;
 use crate::spatial::SpatialPosition;
+use crate::text_engine::TextDirection;
+use crate::{Result, TategakiError};
 use std::collections::HashMap;
 
 /// Editor modes
@@ -91,10 +91,10 @@ impl KeyInput {
         let key = if key_code < 128 {
             // ASCII character - handle special cases first
             match key_code {
-                10 | 13 => "Enter".to_string(),  // Line feed or carriage return
-                27 => "Escape".to_string(),      // ESC
-                9 => "Tab".to_string(),          // Tab
-                8 | 127 => "Backspace".to_string(),  // BS or DEL (both used as backspace)
+                10 | 13 => "Enter".to_string(),     // Line feed or carriage return
+                27 => "Escape".to_string(),         // ESC
+                9 => "Tab".to_string(),             // Tab
+                8 | 127 => "Backspace".to_string(), // BS or DEL (both used as backspace)
                 _ => (key_code as u8 as char).to_string(),
             }
         } else {
@@ -108,15 +108,15 @@ impl KeyInput {
                 // Function keys
                 0x109 => "Escape".to_string(),
                 0x10A => "Enter".to_string(),
-                1115121 => "Enter".to_string(),  // NCKEY_ENTER on some systems
+                1115121 => "Enter".to_string(), // NCKEY_ENTER on some systems
                 // Backspace - multiple possible codes
                 0x107 => "Backspace".to_string(),
-                0x11037F => "Backspace".to_string(),  // 1115007 - actual code from terminal
-                1115007 => "Backspace".to_string(),   // Same as above in decimal
+                0x11037F => "Backspace".to_string(), // 1115007 - actual code from terminal
+                1115007 => "Backspace".to_string(),  // Same as above in decimal
                 // Delete - multiple possible codes
                 0x14A => "Delete".to_string(),
-                0x110380 => "Delete".to_string(),     // 1115008 - actual code from terminal
-                1115008 => "Delete".to_string(),      // Same as above in decimal
+                0x110380 => "Delete".to_string(), // 1115008 - actual code from terminal
+                1115008 => "Delete".to_string(),  // Same as above in decimal
                 // Home/End
                 0x106 => "Home".to_string(),
                 0x168 => "End".to_string(),
@@ -127,7 +127,12 @@ impl KeyInput {
             }
         };
 
-        Self { key, ctrl, alt, shift }
+        Self {
+            key,
+            ctrl,
+            alt,
+            shift,
+        }
     }
 }
 
@@ -147,10 +152,10 @@ pub enum EditorCommand {
     EnterCommandMode,
 
     // Navigation (adapted for vertical text)
-    MoveUp,         // Up in vertical text (previous character in column)
-    MoveDown,       // Down in vertical text (next character in column)
-    MoveLeft,       // Left in vertical text (next column, right-to-left)
-    MoveRight,      // Right in vertical text (previous column)
+    MoveUp,    // Up in vertical text (previous character in column)
+    MoveDown,  // Down in vertical text (next character in column)
+    MoveLeft,  // Left in vertical text (next column, right-to-left)
+    MoveRight, // Right in vertical text (previous column)
     MoveWordForward,
     MoveWordBackward,
     MoveToLineStart,
@@ -166,7 +171,7 @@ pub enum EditorCommand {
     DeleteLine,
     DeleteWord,
     DeleteToLineEnd,
-    Yank,           // Copy
+    Yank, // Copy
     YankLine,
     Paste,
     PasteBefore,
@@ -272,7 +277,7 @@ impl KeyboardHandler {
             // Vertical text: j/k = up/down in column, h/l = between columns
             normal_bindings.insert("k".to_string(), EditorCommand::MoveUp);
             normal_bindings.insert("j".to_string(), EditorCommand::MoveDown);
-            normal_bindings.insert("l".to_string(), EditorCommand::MoveLeft);  // Next column (visual left, RTL)
+            normal_bindings.insert("l".to_string(), EditorCommand::MoveLeft); // Next column (visual left, RTL)
             normal_bindings.insert("h".to_string(), EditorCommand::MoveRight); // Prev column (visual right)
         } else {
             // Horizontal text: standard vim navigation
@@ -287,7 +292,7 @@ impl KeyboardHandler {
         normal_bindings.insert("Down".to_string(), EditorCommand::MoveDown);
         normal_bindings.insert("Left".to_string(), EditorCommand::MoveLeft);
         normal_bindings.insert("Right".to_string(), EditorCommand::MoveRight);
-        normal_bindings.insert("Backspace".to_string(), EditorCommand::MoveLeft);  // Backspace moves left like vim
+        normal_bindings.insert("Backspace".to_string(), EditorCommand::MoveLeft); // Backspace moves left like vim
 
         // Word movement
         normal_bindings.insert("w".to_string(), EditorCommand::MoveWordForward);
@@ -304,7 +309,7 @@ impl KeyboardHandler {
 
         // Deletion
         normal_bindings.insert("x".to_string(), EditorCommand::DeleteChar);
-        normal_bindings.insert("Delete".to_string(), EditorCommand::DeleteChar);  // Delete key works like 'x'
+        normal_bindings.insert("Delete".to_string(), EditorCommand::DeleteChar); // Delete key works like 'x'
         normal_bindings.insert("X".to_string(), EditorCommand::DeleteCharBackward);
         normal_bindings.insert("dd".to_string(), EditorCommand::DeleteLine);
         normal_bindings.insert("dw".to_string(), EditorCommand::DeleteWord);
@@ -331,7 +336,10 @@ impl KeyboardHandler {
         normal_bindings.insert("zj".to_string(), EditorCommand::MoveFloatingBarDown);
         normal_bindings.insert("zh".to_string(), EditorCommand::MoveFloatingBarLeft);
         normal_bindings.insert("zl".to_string(), EditorCommand::MoveFloatingBarRight);
-        normal_bindings.insert("zo".to_string(), EditorCommand::ToggleFloatingBarOrientation);
+        normal_bindings.insert(
+            "zo".to_string(),
+            EditorCommand::ToggleFloatingBarOrientation,
+        );
 
         self.bindings.insert(EditorMode::Normal, normal_bindings);
 
@@ -365,13 +373,18 @@ impl KeyboardHandler {
         visual_bindings.insert("d".to_string(), EditorCommand::DeleteChar);
         visual_bindings.insert("x".to_string(), EditorCommand::DeleteChar);
 
-        self.bindings.insert(EditorMode::Visual, visual_bindings.clone());
-        self.bindings.insert(EditorMode::VisualLine, visual_bindings);
+        self.bindings
+            .insert(EditorMode::Visual, visual_bindings.clone());
+        self.bindings
+            .insert(EditorMode::VisualLine, visual_bindings);
 
         // === COMMAND MODE ===
         let mut command_bindings = HashMap::new();
         command_bindings.insert("Escape".to_string(), EditorCommand::EnterNormalMode);
-        command_bindings.insert("Enter".to_string(), EditorCommand::ExecuteCommand(String::new()));
+        command_bindings.insert(
+            "Enter".to_string(),
+            EditorCommand::ExecuteCommand(String::new()),
+        );
         command_bindings.insert("Backspace".to_string(), EditorCommand::DeleteCharBackward);
         self.bindings.insert(EditorMode::Command, command_bindings);
     }
@@ -423,8 +436,7 @@ impl KeyboardHandler {
             }
 
             // Check if buffer could be a prefix of a valid command
-            let has_potential_match = bindings.keys()
-                .any(|k| k.starts_with(&self.command_buffer));
+            let has_potential_match = bindings.keys().any(|k| k.starts_with(&self.command_buffer));
 
             if !has_potential_match {
                 // No match possible, clear buffer
@@ -511,12 +523,12 @@ impl KeyboardHandler {
                 self.mode = EditorMode::Normal;
                 self.command_buffer.clear();
             }
-            EditorCommand::EnterInsertMode |
-            EditorCommand::EnterInsertModeAfter |
-            EditorCommand::EnterInsertModeAtLineStart |
-            EditorCommand::EnterInsertModeAtLineEnd |
-            EditorCommand::EnterInsertModeNewLineBelow |
-            EditorCommand::EnterInsertModeNewLineAbove => {
+            EditorCommand::EnterInsertMode
+            | EditorCommand::EnterInsertModeAfter
+            | EditorCommand::EnterInsertModeAtLineStart
+            | EditorCommand::EnterInsertModeAtLineEnd
+            | EditorCommand::EnterInsertModeNewLineBelow
+            | EditorCommand::EnterInsertModeNewLineAbove => {
                 self.mode = EditorMode::Insert;
             }
             EditorCommand::EnterVisualMode => {

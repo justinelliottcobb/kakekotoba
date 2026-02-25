@@ -1,7 +1,7 @@
 //! Text flow analysis for vertical programming languages
 
-use crate::vertical::{Position2D, SpatialToken, WritingDirection};
 use crate::error::Result;
+use crate::vertical::{Position2D, SpatialToken, WritingDirection};
 
 /// Analyzes how text flows in 2D space for vertical programming languages
 #[derive(Debug, Clone)]
@@ -80,7 +80,7 @@ impl TextFlow {
 
         let direction = tokens[0].direction;
         let mut flow = Self::new(direction);
-        
+
         let mut current_segment: Option<FlowSegmentBuilder> = None;
         let mut last_position = Position2D::origin();
 
@@ -93,7 +93,7 @@ impl TextFlow {
                         position: token.span.start,
                         break_type: FlowBreakType::LineBreak,
                     });
-                    
+
                     // End current segment if it exists
                     if let Some(builder) = current_segment.take() {
                         flow.segments.push(builder.build());
@@ -102,29 +102,22 @@ impl TextFlow {
                 continue;
             }
 
-            let flow_direction = Self::determine_flow_direction(
-                last_position,
-                token.span.start,
-                direction,
-            );
+            let flow_direction =
+                Self::determine_flow_direction(last_position, token.span.start, direction);
 
             // Check if we need to start a new segment
             if let Some(ref mut builder) = current_segment {
-                if builder.direction != flow_direction || 
-                   Self::should_break_segment(last_position, token.span.start) {
+                if builder.direction != flow_direction
+                    || Self::should_break_segment(last_position, token.span.start)
+                {
                     // End current segment and start new one
                     flow.segments.push(builder.build());
-                    current_segment = Some(FlowSegmentBuilder::new(
-                        token.span.start,
-                        flow_direction,
-                    ));
+                    current_segment =
+                        Some(FlowSegmentBuilder::new(token.span.start, flow_direction));
                 }
             } else {
                 // Start first segment
-                current_segment = Some(FlowSegmentBuilder::new(
-                    token.span.start,
-                    flow_direction,
-                ));
+                current_segment = Some(FlowSegmentBuilder::new(token.span.start, flow_direction));
             }
 
             // Add token to current segment
@@ -193,7 +186,7 @@ impl TextFlow {
 
         // Count occurrences of each direction
         let mut counts = [0; 4]; // TopToBottom, RightToLeft, LeftToRight, BottomToTop
-        
+
         for segment in &self.segments {
             match segment.direction {
                 FlowDirection::TopToBottom => counts[0] += segment.token_count,
@@ -204,7 +197,8 @@ impl TextFlow {
         }
 
         // Return the most common direction
-        let max_idx = counts.iter()
+        let max_idx = counts
+            .iter()
             .enumerate()
             .max_by_key(|(_, &count)| count)
             .map(|(idx, _)| idx)
@@ -221,7 +215,8 @@ impl TextFlow {
 
     /// Get segments that flow in a specific direction
     pub fn segments_with_direction(&self, direction: FlowDirection) -> Vec<&FlowSegment> {
-        self.segments.iter()
+        self.segments
+            .iter()
             .filter(|segment| segment.direction == direction)
             .collect()
     }
@@ -233,7 +228,8 @@ impl TextFlow {
 
     /// Get breaks of a specific type
     pub fn breaks_of_type(&self, break_type: FlowBreakType) -> Vec<&FlowBreak> {
-        self.breaks.iter()
+        self.breaks
+            .iter()
             .filter(|break_| break_.break_type == break_type)
             .collect()
     }
@@ -245,7 +241,9 @@ impl TextFlow {
         }
 
         let first_direction = self.segments[0].direction;
-        self.segments.iter().any(|seg| seg.direction != first_direction)
+        self.segments
+            .iter()
+            .any(|seg| seg.direction != first_direction)
     }
 }
 
@@ -291,19 +289,19 @@ impl FlowAnalyzer {
         let base_complexity = flow.segments.len() as f64;
         let break_penalty = flow.breaks.len() as f64 * 0.5;
         let mixed_flow_penalty = if flow.has_mixed_flow() { 2.0 } else { 0.0 };
-        
+
         base_complexity + break_penalty + mixed_flow_penalty
     }
 
     /// Get reading order positions for tokens
     pub fn reading_order_positions(flow: &TextFlow) -> Vec<Position2D> {
         let mut positions = Vec::new();
-        
+
         for segment in &flow.segments {
             // Add segment positions in reading order
             positions.push(segment.start);
         }
-        
+
         // Sort by reading order based on primary flow direction
         match flow.primary_flow_direction() {
             FlowDirection::TopToBottom => {
@@ -319,7 +317,7 @@ impl FlowAnalyzer {
                 positions.sort_by_key(|pos| (pos.column, std::cmp::Reverse(pos.row)));
             }
         }
-        
+
         positions
     }
 }
@@ -327,7 +325,7 @@ impl FlowAnalyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vertical::{SpatialTokenKind, Span2D};
+    use crate::vertical::{Span2D, SpatialTokenKind};
 
     #[test]
     fn test_flow_creation() {
@@ -341,26 +339,21 @@ mod tests {
     fn test_flow_direction_determination() {
         let from = Position2D::new(5, 0, 0);
         let to = Position2D::new(5, 1, 5);
-        
-        let direction = TextFlow::determine_flow_direction(
-            from,
-            to,
-            WritingDirection::VerticalTbRl,
-        );
-        
+
+        let direction =
+            TextFlow::determine_flow_direction(from, to, WritingDirection::VerticalTbRl);
+
         assert_eq!(direction, FlowDirection::TopToBottom);
     }
 
     #[test]
     fn test_flow_segment_builder() {
-        let mut builder = FlowSegmentBuilder::new(
-            Position2D::new(0, 0, 0),
-            FlowDirection::TopToBottom,
-        );
-        
+        let mut builder =
+            FlowSegmentBuilder::new(Position2D::new(0, 0, 0), FlowDirection::TopToBottom);
+
         builder.add_token_position(Position2D::new(0, 1, 5));
         builder.add_token_position(Position2D::new(0, 2, 10));
-        
+
         let segment = builder.build();
         assert_eq!(segment.token_count, 2);
         assert_eq!(segment.direction, FlowDirection::TopToBottom);

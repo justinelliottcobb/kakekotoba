@@ -1,9 +1,9 @@
 //! Markdown format with vertical text extensions
 
-use super::{FileHandler, FileMetadata, FileFormat};
-use crate::{Result, TategakiError};
-use crate::text_engine::{VerticalTextBuffer, TextDirection};
+use super::{FileFormat, FileHandler, FileMetadata};
 use crate::spatial::{SpatialPosition, SpatialRange};
+use crate::text_engine::{TextDirection, VerticalTextBuffer};
+use crate::{Result, TategakiError};
 use std::path::Path;
 
 /// Markdown file handler with vertical text support
@@ -85,7 +85,10 @@ impl MarkdownHandler {
         }
 
         // Remove leading and trailing newlines
-        let cleaned_content = cleaned_content.trim_start_matches('\n').trim_end_matches('\n').to_string();
+        let cleaned_content = cleaned_content
+            .trim_start_matches('\n')
+            .trim_end_matches('\n')
+            .to_string();
 
         (cleaned_content, metadata)
     }
@@ -106,7 +109,9 @@ impl MarkdownHandler {
                     "text_direction" | "direction" => {
                         metadata.text_direction = match value {
                             "vertical" | "vertical-tb" => Some(TextDirection::VerticalTopToBottom),
-                            "horizontal" | "horizontal-lr" => Some(TextDirection::HorizontalLeftToRight),
+                            "horizontal" | "horizontal-lr" => {
+                                Some(TextDirection::HorizontalLeftToRight)
+                            }
                             _ => None,
                         };
                     }
@@ -115,7 +120,11 @@ impl MarkdownHandler {
                             if let Some(ref mut pos) = metadata.cursor_position {
                                 pos.row = row;
                             } else {
-                                metadata.cursor_position = Some(SpatialPosition { row, column: 0, byte_offset: 0 });
+                                metadata.cursor_position = Some(SpatialPosition {
+                                    row,
+                                    column: 0,
+                                    byte_offset: 0,
+                                });
                             }
                         }
                     }
@@ -124,12 +133,18 @@ impl MarkdownHandler {
                             if let Some(ref mut pos) = metadata.cursor_position {
                                 pos.column = column;
                             } else {
-                                metadata.cursor_position = Some(SpatialPosition { row: 0, column, byte_offset: 0 });
+                                metadata.cursor_position = Some(SpatialPosition {
+                                    row: 0,
+                                    column,
+                                    byte_offset: 0,
+                                });
                             }
                         }
                     }
                     _ => {
-                        metadata.custom_properties.insert(key.to_string(), value.to_string());
+                        metadata
+                            .custom_properties
+                            .insert(key.to_string(), value.to_string());
                     }
                 }
             }
@@ -142,7 +157,7 @@ impl MarkdownHandler {
 
         // HTML-style comments for directives
         if line.starts_with("<!-- tategaki:") && line.ends_with(" -->") {
-            let directive_content = &line[14..line.len()-4].trim();
+            let directive_content = &line[14..line.len() - 4].trim();
             return self.parse_directive_content(directive_content);
         }
 
@@ -163,18 +178,20 @@ impl MarkdownHandler {
         }
 
         match parts[0] {
-            "direction" if parts.len() >= 2 => {
-                match parts[1] {
-                    "vertical" | "vertical-tb" => Some(VerticalDirective::TextDirection(TextDirection::VerticalTopToBottom)),
-                    "horizontal" | "horizontal-lr" => Some(VerticalDirective::TextDirection(TextDirection::HorizontalLeftToRight)),
-                    _ => None,
-                }
-            }
+            "direction" if parts.len() >= 2 => match parts[1] {
+                "vertical" | "vertical-tb" => Some(VerticalDirective::TextDirection(
+                    TextDirection::VerticalTopToBottom,
+                )),
+                "horizontal" | "horizontal-lr" => Some(VerticalDirective::TextDirection(
+                    TextDirection::HorizontalLeftToRight,
+                )),
+                _ => None,
+            },
             "column" if parts.len() >= 2 => {
                 // Parse column specification: "column width:20 height:40"
                 let mut width = None;
                 let mut height = None;
-                
+
                 for part in &parts[1..] {
                     if let Some((key, value)) = part.split_once(':') {
                         match key {
@@ -186,7 +203,10 @@ impl MarkdownHandler {
                 }
 
                 if let (Some(w), Some(h)) = (width, height) {
-                    Some(VerticalDirective::Column(ColumnSpec { width: w, height: h }))
+                    Some(VerticalDirective::Column(ColumnSpec {
+                        width: w,
+                        height: h,
+                    }))
                 } else {
                     None
                 }
@@ -195,7 +215,7 @@ impl MarkdownHandler {
                 // Parse cursor position: "cursor row:5 column:10"
                 let mut row = None;
                 let mut column = None;
-                
+
                 for part in &parts[1..] {
                     if let Some((key, value)) = part.split_once(':') {
                         match key {
@@ -207,7 +227,11 @@ impl MarkdownHandler {
                 }
 
                 if let (Some(r), Some(c)) = (row, column) {
-                    Some(VerticalDirective::Cursor(SpatialPosition { row: r, column: c, byte_offset: 0 }))
+                    Some(VerticalDirective::Cursor(SpatialPosition {
+                        row: r,
+                        column: c,
+                        byte_offset: 0,
+                    }))
                 } else {
                     None
                 }
@@ -260,11 +284,12 @@ impl MarkdownHandler {
 
     /// Detect if content has CJK characters (heuristic for vertical text)
     fn has_cjk_content(&self, content: &str) -> bool {
-        let cjk_count = content.chars()
+        let cjk_count = content
+            .chars()
             .filter(|&c| self.is_cjk_character(c))
             .count();
         let total_chars = content.chars().filter(|&c| !c.is_whitespace()).count();
-        
+
         total_chars > 0 && (cjk_count as f32 / total_chars as f32) > 0.1
     }
 
@@ -306,17 +331,21 @@ struct MarkdownMetadata {
 
 impl MarkdownMetadata {
     fn has_vertical_metadata(&self) -> bool {
-        self.text_direction.is_some() || 
-        self.cursor_position.is_some() || 
-        !self.column_specs.is_empty() ||
-        !self.custom_properties.is_empty()
+        self.text_direction.is_some()
+            || self.cursor_position.is_some()
+            || !self.column_specs.is_empty()
+            || !self.custom_properties.is_empty()
     }
 }
 
 impl FileHandler for MarkdownHandler {
     fn load(&self, path: &Path) -> Result<(VerticalTextBuffer, FileMetadata)> {
-        let raw_content = std::fs::read_to_string(path)
-            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to read markdown file: {}", e))))?;
+        let raw_content = std::fs::read_to_string(path).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read markdown file: {}", e),
+            ))
+        })?;
 
         let (content, md_metadata) = if self.parse_vertical_directives {
             self.parse_vertical_directives(&raw_content)
@@ -325,25 +354,25 @@ impl FileHandler for MarkdownHandler {
         };
 
         // Determine text direction
-        let text_direction = md_metadata.text_direction
-            .unwrap_or_else(|| {
-                if self.has_cjk_content(&content) {
-                    TextDirection::VerticalTopToBottom
-                } else {
-                    TextDirection::HorizontalLeftToRight
-                }
-            });
+        let text_direction = md_metadata.text_direction.unwrap_or_else(|| {
+            if self.has_cjk_content(&content) {
+                TextDirection::VerticalTopToBottom
+            } else {
+                TextDirection::HorizontalLeftToRight
+            }
+        });
 
         // Create buffer
         let buffer = VerticalTextBuffer::from_text(&content, text_direction)?;
 
         // Create file metadata
         let mut properties = std::collections::HashMap::new();
-        
+
         // Add column specs
         if !md_metadata.column_specs.is_empty() {
-            let columns_json = serde_json::to_string(&md_metadata.column_specs)
-                .map_err(|e| TategakiError::Serialization(format!("Failed to serialize columns: {}", e)))?;
+            let columns_json = serde_json::to_string(&md_metadata.column_specs).map_err(|e| {
+                TategakiError::Serialization(format!("Failed to serialize columns: {}", e))
+            })?;
             properties.insert("columns".to_string(), columns_json);
         }
 
@@ -365,7 +394,12 @@ impl FileHandler for MarkdownHandler {
         Ok((buffer, metadata))
     }
 
-    fn save(&self, buffer: &VerticalTextBuffer, metadata: &FileMetadata, path: &Path) -> Result<()> {
+    fn save(
+        &self,
+        buffer: &VerticalTextBuffer,
+        metadata: &FileMetadata,
+        path: &Path,
+    ) -> Result<()> {
         let content = buffer.as_text();
 
         // Create markdown metadata from file metadata
@@ -378,14 +412,17 @@ impl FileHandler for MarkdownHandler {
 
         // Extract column specs from properties
         if let Some(columns_json) = metadata.properties.get("columns") {
-            md_metadata.column_specs = serde_json::from_str(columns_json)
-                .map_err(|e| TategakiError::Serialization(format!("Failed to parse columns: {}", e)))?;
+            md_metadata.column_specs = serde_json::from_str(columns_json).map_err(|e| {
+                TategakiError::Serialization(format!("Failed to parse columns: {}", e))
+            })?;
         }
 
         // Extract custom properties
         for (key, value) in &metadata.properties {
             if let Some(md_key) = key.strip_prefix("md_") {
-                md_metadata.custom_properties.insert(md_key.to_string(), value.clone());
+                md_metadata
+                    .custom_properties
+                    .insert(md_key.to_string(), value.clone());
             }
         }
 
@@ -399,13 +436,21 @@ impl FileHandler for MarkdownHandler {
 
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to create directory: {}", e))))?;
+            std::fs::create_dir_all(parent).map_err(|e| {
+                TategakiError::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("Failed to create directory: {}", e),
+                ))
+            })?;
         }
 
         // Write file
-        std::fs::write(path, final_content)
-            .map_err(|e| TategakiError::Io(std::io::Error::new(e.kind(), format!("Failed to write markdown file: {}", e))))?;
+        std::fs::write(path, final_content).map_err(|e| {
+            TategakiError::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to write markdown file: {}", e),
+            ))
+        })?;
 
         Ok(())
     }
@@ -420,18 +465,20 @@ impl FileHandler for MarkdownHandler {
 
     fn validate(&self, path: &Path) -> Result<()> {
         if !path.exists() {
-            return Err(TategakiError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, format!("File does not exist: {}", path.display()))));
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("File does not exist: {}", path.display()),
+            )));
         }
 
         // Check if file is too large
         let size = crate::formats::utils::file_size(path)?;
-        if size > 10 * 1024 * 1024 { // 10MB limit for markdown
-            return Err(TategakiError::Io(
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("Markdown file too large ({} bytes). Maximum: 10MB", size)
-                )
-            ));
+        if size > 10 * 1024 * 1024 {
+            // 10MB limit for markdown
+            return Err(TategakiError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Markdown file too large ({} bytes). Maximum: 10MB", size),
+            )));
         }
 
         // Try to read as UTF-8
@@ -471,13 +518,19 @@ mod tests {
     #[test]
     fn test_directive_parsing() {
         let handler = MarkdownHandler::new();
-        
+
         // Test HTML comment directive
         let directive = handler.parse_line_directive("<!-- tategaki: direction vertical -->");
-        assert!(matches!(directive, Some(VerticalDirective::TextDirection(TextDirection::VerticalTopToBottom))));
+        assert!(matches!(
+            directive,
+            Some(VerticalDirective::TextDirection(
+                TextDirection::VerticalTopToBottom
+            ))
+        ));
 
         // Test column directive
-        let directive = handler.parse_line_directive("<!-- tategaki: column width:20 height:40 -->");
+        let directive =
+            handler.parse_line_directive("<!-- tategaki: column width:20 height:40 -->");
         if let Some(VerticalDirective::Column(spec)) = directive {
             assert_eq!(spec.width, 20);
             assert_eq!(spec.height, 40);
@@ -511,10 +564,23 @@ Some content here.
 "#;
 
         let (parsed_content, metadata) = handler.parse_vertical_directives(content);
-        
-        assert_eq!(metadata.text_direction, Some(TextDirection::VerticalTopToBottom));
-        assert_eq!(metadata.cursor_position, Some(SpatialPosition { row: 2, column: 5, byte_offset: 0 }));
-        assert_eq!(metadata.custom_properties.get("custom_prop"), Some(&"test_value".to_string()));
+
+        assert_eq!(
+            metadata.text_direction,
+            Some(TextDirection::VerticalTopToBottom)
+        );
+        assert_eq!(
+            metadata.cursor_position,
+            Some(SpatialPosition {
+                row: 2,
+                column: 5,
+                byte_offset: 0
+            })
+        );
+        assert_eq!(
+            metadata.custom_properties.get("custom_prop"),
+            Some(&"test_value".to_string())
+        );
         assert!(parsed_content.contains("# Test Markdown"));
         assert!(!parsed_content.contains("---"));
     }
@@ -523,22 +589,29 @@ Some content here.
     fn test_save_load_cycle() -> Result<()> {
         let handler = MarkdownHandler::new();
         let test_content = "# Test Markdown\n\nSome **bold** text with 日本語.";
-        
+
         // Create buffer and metadata
-        let buffer = VerticalTextBuffer::from_text(test_content, TextDirection::VerticalTopToBottom)?;
+        let buffer =
+            VerticalTextBuffer::from_text(test_content, TextDirection::VerticalTopToBottom)?;
         let mut metadata = FileMetadata {
             format: FileFormat::Markdown,
             text_direction: TextDirection::VerticalTopToBottom,
-            cursor_position: Some(SpatialPosition { row: 1, column: 10, byte_offset: 0 }),
+            cursor_position: Some(SpatialPosition {
+                row: 1,
+                column: 10,
+                byte_offset: 0,
+            }),
             encoding: "UTF-8".to_string(),
             ..FileMetadata::default()
         };
-        metadata.properties.insert("md_author".to_string(), "Test Author".to_string());
-        
+        metadata
+            .properties
+            .insert("md_author".to_string(), "Test Author".to_string());
+
         // Save to temporary file
         let temp_file = NamedTempFile::new().unwrap();
         handler.save(&buffer, &metadata, temp_file.path())?;
-        
+
         // Read and verify the saved content contains frontmatter
         let saved_content = std::fs::read_to_string(temp_file.path()).unwrap();
         assert!(saved_content.contains("---"));
@@ -547,17 +620,30 @@ Some content here.
         assert!(saved_content.contains("cursor_column: 10"));
         assert!(saved_content.contains("author: Test Author"));
         assert!(saved_content.contains("# Test Markdown"));
-        
+
         // Load back
         let (loaded_buffer, loaded_metadata) = handler.load(temp_file.path())?;
-        
+
         // Verify
         assert_eq!(loaded_buffer.as_text(), test_content);
         assert_eq!(loaded_metadata.format, FileFormat::Markdown);
-        assert_eq!(loaded_metadata.text_direction, TextDirection::VerticalTopToBottom);
-        assert_eq!(loaded_metadata.cursor_position, Some(SpatialPosition { row: 1, column: 10, byte_offset: 0 }));
-        assert_eq!(loaded_metadata.properties.get("md_author"), Some(&"Test Author".to_string()));
-        
+        assert_eq!(
+            loaded_metadata.text_direction,
+            TextDirection::VerticalTopToBottom
+        );
+        assert_eq!(
+            loaded_metadata.cursor_position,
+            Some(SpatialPosition {
+                row: 1,
+                column: 10,
+                byte_offset: 0
+            })
+        );
+        assert_eq!(
+            loaded_metadata.properties.get("md_author"),
+            Some(&"Test Author".to_string())
+        );
+
         Ok(())
     }
 
@@ -566,8 +652,15 @@ Some content here.
         let handler = MarkdownHandler::new();
         let mut metadata = MarkdownMetadata {
             text_direction: Some(TextDirection::VerticalTopToBottom),
-            cursor_position: Some(SpatialPosition { row: 5, column: 10, byte_offset: 0 }),
-            column_specs: vec![ColumnSpec { width: 20, height: 40 }],
+            cursor_position: Some(SpatialPosition {
+                row: 5,
+                column: 10,
+                byte_offset: 0,
+            }),
+            column_specs: vec![ColumnSpec {
+                width: 20,
+                height: 40,
+            }],
             custom_properties: {
                 let mut props = std::collections::HashMap::new();
                 props.insert("author".to_string(), "Test".to_string());
@@ -576,7 +669,7 @@ Some content here.
         };
 
         let directives = handler.generate_vertical_directives(&metadata);
-        
+
         assert!(directives.contains("---"));
         assert!(directives.contains("text_direction: vertical"));
         assert!(directives.contains("cursor_row: 5"));

@@ -1,10 +1,10 @@
 //! Text selection management for GPUI interface
 
+use crate::spatial::SpatialPosition;
+use crate::text_engine::LayoutEngine;
+use crate::{Result, TategakiError};
 #[cfg(feature = "gpui")]
 use gpui::*;
-use crate::{Result, TategakiError};
-use crate::text_engine::LayoutEngine;
-use crate::spatial::SpatialPosition;
 
 #[cfg(feature = "gpui")]
 /// Text selection handler for spatial text
@@ -291,7 +291,10 @@ impl SelectionHandler {
     pub fn copy_selection(&self) -> Option<String> {
         if self.is_active() {
             // TODO: Extract actual text from buffer
-            Some(format!("Selected text from {:?} to {:?}", self.start, self.end))
+            Some(format!(
+                "Selected text from {:?} to {:?}",
+                self.start, self.end
+            ))
         } else {
             None
         }

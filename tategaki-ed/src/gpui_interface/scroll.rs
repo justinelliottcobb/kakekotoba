@@ -1,10 +1,10 @@
 //! Scrolling and viewport management for GPUI interface
 
-#[cfg(feature = "gpui")]
-use gpui::*;
-use crate::{Result, TategakiError};
 use crate::spatial::SpatialPosition;
 use crate::text_engine::{LayoutEngine, TextDirection};
+use crate::{Result, TategakiError};
+#[cfg(feature = "gpui")]
+use gpui::*;
 
 #[cfg(feature = "gpui")]
 /// Scroll manager for vertical text viewport
@@ -58,7 +58,10 @@ impl ScrollManager {
         Self {
             offset: SpatialPosition::origin(),
             viewport_size: Size::default(),
-            content_size: SpatialPosition { row: 100, column: 80 }, // Default size
+            content_size: SpatialPosition {
+                row: 100,
+                column: 80,
+            }, // Default size
             scroll_speed: 1.0,
             smooth_scroll: SmoothScrollState {
                 target: SpatialPosition::origin(),
@@ -118,7 +121,7 @@ impl ScrollManager {
     /// Set scroll offset directly
     pub fn set_scroll_offset(&mut self, offset: SpatialPosition) {
         let clamped_offset = self.clamp_offset(offset);
-        
+
         if self.smooth_scroll.enabled {
             self.smooth_scroll.target = clamped_offset;
         } else {
@@ -134,24 +137,29 @@ impl ScrollManager {
             (ScrollDirection::Up, TextDirection::VerticalTopToBottom) => {
                 SpatialPosition { row: 1, column: 0 } // Move up in current column
             }
-            (ScrollDirection::Down, TextDirection::VerticalTopToBottom) => {
-                SpatialPosition { row: (1.0 * self.scroll_speed) as usize, column: 0 }
-            }
+            (ScrollDirection::Down, TextDirection::VerticalTopToBottom) => SpatialPosition {
+                row: (1.0 * self.scroll_speed) as usize,
+                column: 0,
+            },
             (ScrollDirection::Left, TextDirection::VerticalTopToBottom) => {
                 SpatialPosition { row: 0, column: 1 } // Next column (left in vertical)
             }
-            (ScrollDirection::Right, TextDirection::VerticalTopToBottom) => {
-                SpatialPosition { row: 0, column: (1.0 * self.scroll_speed) as usize }
-            }
+            (ScrollDirection::Right, TextDirection::VerticalTopToBottom) => SpatialPosition {
+                row: 0,
+                column: (1.0 * self.scroll_speed) as usize,
+            },
             (ScrollDirection::PageUp, _) => {
                 let page_size = self.calculate_page_size();
-                SpatialPosition { row: page_size.row, column: 0 }
+                SpatialPosition {
+                    row: page_size.row,
+                    column: 0,
+                }
             }
             (ScrollDirection::PageDown, _) => {
                 let page_size = self.calculate_page_size();
-                SpatialPosition { 
+                SpatialPosition {
                     row: (page_size.row as i32 * -1).max(-(self.offset.row as i32)) as usize,
-                    column: 0 
+                    column: 0,
                 }
             }
             (ScrollDirection::Home, _) => {
@@ -164,15 +172,17 @@ impl ScrollManager {
             (ScrollDirection::Up, TextDirection::HorizontalLeftToRight) => {
                 SpatialPosition { row: 1, column: 0 }
             }
-            (ScrollDirection::Down, TextDirection::HorizontalLeftToRight) => {
-                SpatialPosition { row: (1.0 * self.scroll_speed) as usize, column: 0 }
-            }
+            (ScrollDirection::Down, TextDirection::HorizontalLeftToRight) => SpatialPosition {
+                row: (1.0 * self.scroll_speed) as usize,
+                column: 0,
+            },
             (ScrollDirection::Left, TextDirection::HorizontalLeftToRight) => {
                 SpatialPosition { row: 0, column: 1 }
             }
-            (ScrollDirection::Right, TextDirection::HorizontalLeftToRight) => {
-                SpatialPosition { row: 0, column: (1.0 * self.scroll_speed) as usize }
-            }
+            (ScrollDirection::Right, TextDirection::HorizontalLeftToRight) => SpatialPosition {
+                row: 0,
+                column: (1.0 * self.scroll_speed) as usize,
+            },
         };
 
         self.scroll_by(delta);
@@ -180,9 +190,14 @@ impl ScrollManager {
     }
 
     /// Handle mouse wheel scrolling
-    pub fn handle_wheel_scroll(&mut self, delta_x: f32, delta_y: f32, modifiers: &Modifiers) -> Result<()> {
+    pub fn handle_wheel_scroll(
+        &mut self,
+        delta_x: f32,
+        delta_y: f32,
+        modifiers: &Modifiers,
+    ) -> Result<()> {
         let speed_multiplier = if modifiers.shift { 3.0 } else { 1.0 };
-        
+
         let delta = match self.text_direction {
             TextDirection::VerticalTopToBottom => {
                 // In vertical text, wheel up/down scrolls within column
@@ -206,7 +221,11 @@ impl ScrollManager {
     }
 
     /// Scroll to make position visible
-    pub fn ensure_visible(&mut self, position: SpatialPosition, layout_engine: &LayoutEngine) -> Result<()> {
+    pub fn ensure_visible(
+        &mut self,
+        position: SpatialPosition,
+        layout_engine: &LayoutEngine,
+    ) -> Result<()> {
         let current_offset = self.offset();
         let mut new_offset = current_offset;
 
@@ -276,7 +295,7 @@ impl ScrollManager {
     fn calculate_page_size(&self) -> SpatialPosition {
         // Estimate based on viewport size
         SpatialPosition {
-            row: 20, // Approximate lines per page
+            row: 20,   // Approximate lines per page
             column: 5, // Approximate columns per page
         }
     }
@@ -294,10 +313,16 @@ impl ScrollManager {
     /// Clamp scroll offset to valid bounds
     fn clamp_offset(&self, offset: SpatialPosition) -> SpatialPosition {
         let viewport_bounds = self.calculate_viewport_bounds();
-        
+
         SpatialPosition {
-            row: offset.row.min(self.content_size.row.saturating_sub(viewport_bounds.row)),
-            column: offset.column.min(self.content_size.column.saturating_sub(viewport_bounds.column)),
+            row: offset
+                .row
+                .min(self.content_size.row.saturating_sub(viewport_bounds.row)),
+            column: offset.column.min(
+                self.content_size
+                    .column
+                    .saturating_sub(viewport_bounds.column),
+            ),
         }
     }
 
@@ -319,7 +344,10 @@ impl ScrollManager {
         let viewport_bounds = self.calculate_viewport_bounds();
         let end_offset = SpatialPosition {
             row: self.content_size.row.saturating_sub(viewport_bounds.row),
-            column: self.content_size.column.saturating_sub(viewport_bounds.column),
+            column: self
+                .content_size
+                .column
+                .saturating_sub(viewport_bounds.column),
         };
         self.set_scroll_offset(end_offset);
     }
@@ -337,7 +365,10 @@ impl ScrollManager {
     pub fn scroll_percentage(&self) -> (f32, f32) {
         let viewport_bounds = self.calculate_viewport_bounds();
         let max_row_offset = self.content_size.row.saturating_sub(viewport_bounds.row);
-        let max_col_offset = self.content_size.column.saturating_sub(viewport_bounds.column);
+        let max_col_offset = self
+            .content_size
+            .column
+            .saturating_sub(viewport_bounds.column);
 
         let row_pct = if max_row_offset > 0 {
             (self.offset.row as f32) / (max_row_offset as f32)

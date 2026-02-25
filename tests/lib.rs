@@ -1,5 +1,5 @@
-mod lexer;
-mod parser; 
-mod inference;
 mod codegen;
+mod inference;
 mod integration;
+mod lexer;
+mod parser;

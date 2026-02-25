@@ -4,16 +4,16 @@
 //! with special support for vertical Japanese text using Unicode vertical
 //! presentation forms and proper character rotation.
 
+use super::{Color, CursorInfo, CursorStyle, Rect, RenderBackend, TextStyle};
+use crate::spatial::SpatialPosition;
+use crate::text_engine::TextDirection;
+use crate::{Result, TategakiError};
 #[cfg(feature = "notcurses")]
 use libnotcurses_sys::c_api::*;
 #[cfg(feature = "notcurses")]
-use std::ptr;
-#[cfg(feature = "notcurses")]
 use std::ffi::CString;
-use crate::{Result, TategakiError};
-use crate::text_engine::TextDirection;
-use crate::spatial::SpatialPosition;
-use super::{RenderBackend, Color, Rect, TextStyle, CursorInfo, CursorStyle};
+#[cfg(feature = "notcurses")]
+use std::ptr;
 
 /// Terminal backend using notcurses
 pub struct TerminalBackend {
@@ -124,11 +124,18 @@ impl TerminalBackend {
     ) -> Result<()> {
         let plane = self.stdplane();
         if plane.is_null() {
-            return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+            return Err(TategakiError::Rendering(
+                "Standard plane not initialized".to_string(),
+            ));
         }
 
         // Set colors (cast u8 to unsigned/u32)
-        ncplane_set_fg_rgb8(plane, style.color.r as u32, style.color.g as u32, style.color.b as u32);
+        ncplane_set_fg_rgb8(
+            plane,
+            style.color.r as u32,
+            style.color.g as u32,
+            style.color.b as u32,
+        );
         if let Some(bg) = style.background {
             ncplane_set_bg_rgb8(plane, bg.r as u32, bg.g as u32, bg.b as u32);
         }
@@ -151,7 +158,12 @@ impl TerminalBackend {
     /// - Text flows top-to-bottom in columns
     /// - Columns progress right-to-left
     /// - Each character occupies approximately 2 cells width (for full-width chars)
-    fn calc_vertical_position(&self, logical_x: f32, logical_y: f32, char_index: usize) -> (u32, u32) {
+    fn calc_vertical_position(
+        &self,
+        logical_x: f32,
+        logical_y: f32,
+        char_index: usize,
+    ) -> (u32, u32) {
         // For vertical text:
         // - logical_x represents the column number (right to left)
         // - logical_y represents the row within that column (top to bottom)
@@ -163,7 +175,10 @@ impl TerminalBackend {
         let col = (cols as f32 - logical_x * 2.0) as u32;
         let row = logical_y as u32;
 
-        (col.min(cols.saturating_sub(1)), row.min(rows.saturating_sub(1)))
+        (
+            col.min(cols.saturating_sub(1)),
+            row.min(rows.saturating_sub(1)),
+        )
     }
 
     /// Calculate position for horizontal text rendering
@@ -185,7 +200,10 @@ impl TerminalBackend {
             let mut input: ncinput = std::mem::zeroed();
             // Use 10ms timeout to allow full escape sequences to be read
             // Zero timeout can cause arrow keys to be split into ESC + letter
-            let ts = ffi::timespec { tv_sec: 0, tv_nsec: 10_000_000 };
+            let ts = ffi::timespec {
+                tv_sec: 0,
+                tv_nsec: 10_000_000,
+            };
             let result = notcurses_get(self.nc, &ts, &mut input);
 
             if result == 0 {
@@ -204,8 +222,11 @@ impl TerminalBackend {
                 .open("/tmp/tategaki_keys.log")
             {
                 use std::io::Write;
-                let _ = writeln!(f, "Key: id=0x{:X} ({}) ctrl={} alt={} shift={}",
-                    input.id, input.id, ctrl, alt, shift);
+                let _ = writeln!(
+                    f,
+                    "Key: id=0x{:X} ({}) ctrl={} alt={} shift={}",
+                    input.id, input.id, ctrl, alt, shift
+                );
             }
 
             Some((input.id, ctrl, alt, shift))
@@ -227,8 +248,8 @@ impl RenderBackend for TerminalBackend {
             extern "C" {
                 fn setlocale(category: i32, locale: *const i8) -> *const i8;
             }
-            const LC_ALL: i32 = 6;  // LC_ALL category
-            let locale = CString::new("").unwrap();  // Empty string means use environment
+            const LC_ALL: i32 = 6; // LC_ALL category
+            let locale = CString::new("").unwrap(); // Empty string means use environment
             setlocale(LC_ALL, locale.as_ptr());
 
             // Initialize notcurses with options to suppress banners
@@ -239,7 +260,9 @@ impl RenderBackend for TerminalBackend {
 
             self.nc = notcurses_init(&opts, ptr::null_mut());
             if self.nc.is_null() {
-                return Err(TategakiError::Rendering("Failed to initialize notcurses".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Failed to initialize notcurses".to_string(),
+                ));
             }
 
             // Get viewport dimensions
@@ -258,7 +281,9 @@ impl RenderBackend for TerminalBackend {
 
     #[cfg(not(feature = "notcurses"))]
     fn init(&mut self) -> Result<()> {
-        Err(TategakiError::Rendering("Notcurses feature not enabled".to_string()))
+        Err(TategakiError::Rendering(
+            "Notcurses feature not enabled".to_string(),
+        ))
     }
 
     #[cfg(feature = "notcurses")]
@@ -289,7 +314,9 @@ impl RenderBackend for TerminalBackend {
             self.bg_color = color;
             let plane = self.stdplane();
             if plane.is_null() {
-                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Standard plane not initialized".to_string(),
+                ));
             }
 
             // Set background color using RGB values (cast u8 to u32)
@@ -318,11 +345,8 @@ impl RenderBackend for TerminalBackend {
                 // Render vertical text top-to-bottom, right-to-left
                 for (i, ch) in text.chars().enumerate() {
                     let vertical_ch = self.to_vertical_form(ch);
-                    let (col, row) = self.calc_vertical_position(
-                        position.0,
-                        position.1 + i as f32,
-                        i
-                    );
+                    let (col, row) =
+                        self.calc_vertical_position(position.0, position.1 + i as f32, i);
 
                     unsafe {
                         self.render_char(vertical_ch, col, row, style)?;
@@ -332,10 +356,8 @@ impl RenderBackend for TerminalBackend {
             TextDirection::HorizontalLeftToRight => {
                 // Render horizontal text left-to-right
                 for (i, ch) in text.chars().enumerate() {
-                    let (col, row) = self.calc_horizontal_position(
-                        position.0 + i as f32,
-                        position.1
-                    );
+                    let (col, row) =
+                        self.calc_horizontal_position(position.0 + i as f32, position.1);
 
                     unsafe {
                         self.render_char(ch, col, row, style)?;
@@ -344,7 +366,12 @@ impl RenderBackend for TerminalBackend {
             }
             _ => {
                 // For other directions, fall back to horizontal
-                return self.render_text(text, position, style, TextDirection::HorizontalLeftToRight);
+                return self.render_text(
+                    text,
+                    position,
+                    style,
+                    TextDirection::HorizontalLeftToRight,
+                );
             }
         }
 
@@ -356,14 +383,21 @@ impl RenderBackend for TerminalBackend {
         unsafe {
             let plane = self.stdplane();
             if plane.is_null() {
-                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Standard plane not initialized".to_string(),
+                ));
             }
 
             let col = cursor.position.column as i32;
             let row = cursor.position.row as i32;
 
             // Set cursor color (cast u8 to u32)
-            ncplane_set_fg_rgb8(plane, cursor.color.r as u32, cursor.color.g as u32, cursor.color.b as u32);
+            ncplane_set_fg_rgb8(
+                plane,
+                cursor.color.r as u32,
+                cursor.color.g as u32,
+                cursor.color.b as u32,
+            );
 
             // Render cursor based on style
             let cursor_char = match cursor.style {
@@ -372,7 +406,13 @@ impl RenderBackend for TerminalBackend {
                 CursorStyle::Underline => "_",
             };
 
-            ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(col as u32), &cursor_char, None);
+            ncplane_putegc_yx(
+                &mut *plane,
+                Some(row as u32),
+                Some(col as u32),
+                &cursor_char,
+                None,
+            );
 
             Ok(())
         }
@@ -388,7 +428,9 @@ impl RenderBackend for TerminalBackend {
         unsafe {
             let plane = self.stdplane();
             if plane.is_null() {
-                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Standard plane not initialized".to_string(),
+                ));
             }
 
             ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
@@ -414,7 +456,9 @@ impl RenderBackend for TerminalBackend {
         unsafe {
             let plane = self.stdplane();
             if plane.is_null() {
-                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Standard plane not initialized".to_string(),
+                ));
             }
 
             ncplane_set_fg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
@@ -427,12 +471,24 @@ impl RenderBackend for TerminalBackend {
             if from_row == to_row {
                 // Horizontal line
                 for col in from_col..=to_col {
-                    ncplane_putegc_yx(&mut *plane, Some(from_row as u32), Some(col as u32), "─", None);
+                    ncplane_putegc_yx(
+                        &mut *plane,
+                        Some(from_row as u32),
+                        Some(col as u32),
+                        "─",
+                        None,
+                    );
                 }
             } else if from_col == to_col {
                 // Vertical line
                 for row in from_row..=to_row {
-                    ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(from_col as u32), "│", None);
+                    ncplane_putegc_yx(
+                        &mut *plane,
+                        Some(row as u32),
+                        Some(from_col as u32),
+                        "│",
+                        None,
+                    );
                 }
             }
         }
@@ -444,7 +500,9 @@ impl RenderBackend for TerminalBackend {
         unsafe {
             let plane = self.stdplane();
             if plane.is_null() {
-                return Err(TategakiError::Rendering("Standard plane not initialized".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Standard plane not initialized".to_string(),
+                ));
             }
 
             ncplane_set_fg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
@@ -458,24 +516,60 @@ impl RenderBackend for TerminalBackend {
                 ncplane_set_bg_rgb8(plane, color.r as u32, color.g as u32, color.b as u32);
                 for row in y..(y + h) {
                     for col in x..(x + w) {
-                        ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(col as u32), " ", None);
+                        ncplane_putegc_yx(
+                            &mut *plane,
+                            Some(row as u32),
+                            Some(col as u32),
+                            " ",
+                            None,
+                        );
                     }
                 }
             } else {
                 // Draw outline
                 ncplane_putegc_yx(&mut *plane, Some(y as u32), Some(x as u32), "┌", None);
-                ncplane_putegc_yx(&mut *plane, Some(y as u32), Some((x + w - 1) as u32), "┐", None);
-                ncplane_putegc_yx(&mut *plane, Some((y + h - 1) as u32), Some(x as u32), "└", None);
-                ncplane_putegc_yx(&mut *plane, Some((y + h - 1) as u32), Some((x + w - 1) as u32), "┘", None);
+                ncplane_putegc_yx(
+                    &mut *plane,
+                    Some(y as u32),
+                    Some((x + w - 1) as u32),
+                    "┐",
+                    None,
+                );
+                ncplane_putegc_yx(
+                    &mut *plane,
+                    Some((y + h - 1) as u32),
+                    Some(x as u32),
+                    "└",
+                    None,
+                );
+                ncplane_putegc_yx(
+                    &mut *plane,
+                    Some((y + h - 1) as u32),
+                    Some((x + w - 1) as u32),
+                    "┘",
+                    None,
+                );
 
                 for col in (x + 1)..(x + w - 1) {
                     ncplane_putegc_yx(&mut *plane, Some(y as u32), Some(col as u32), "─", None);
-                    ncplane_putegc_yx(&mut *plane, Some((y + h - 1) as u32), Some(col as u32), "─", None);
+                    ncplane_putegc_yx(
+                        &mut *plane,
+                        Some((y + h - 1) as u32),
+                        Some(col as u32),
+                        "─",
+                        None,
+                    );
                 }
 
                 for row in (y + 1)..(y + h - 1) {
                     ncplane_putegc_yx(&mut *plane, Some(row as u32), Some(x as u32), "│", None);
-                    ncplane_putegc_yx(&mut *plane, Some(row as u32), Some((x + w - 1) as u32), "│", None);
+                    ncplane_putegc_yx(
+                        &mut *plane,
+                        Some(row as u32),
+                        Some((x + w - 1) as u32),
+                        "│",
+                        None,
+                    );
                 }
             }
         }
@@ -486,7 +580,9 @@ impl RenderBackend for TerminalBackend {
     fn present(&mut self) -> Result<()> {
         unsafe {
             if self.nc.is_null() {
-                return Err(TategakiError::Rendering("Notcurses not initialized".to_string()));
+                return Err(TategakiError::Rendering(
+                    "Notcurses not initialized".to_string(),
+                ));
             }
 
             let stdplane = notcurses_stdplane(self.nc);

@@ -1,8 +1,10 @@
 use crate::error::{Error, Result, Span};
-use crate::vertical::{Position2D, Span2D, SpatialToken, SpatialTokenKind, VerticalProcessor, WritingDirection};
 use crate::japanese::{JapaneseAnalyzer, KeywordDetector, KeywordType};
-use unicode_segmentation::UnicodeSegmentation;
+use crate::vertical::{
+    Position2D, Span2D, SpatialToken, SpatialTokenKind, VerticalProcessor, WritingDirection,
+};
 use serde::{Deserialize, Serialize};
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TokenKind {
@@ -12,16 +14,16 @@ pub enum TokenKind {
     Moshi,      // もし (if)
     Sore,       // それ (then/else)
     Kurikaeshi, // 繰り返し (loop/iterate)
-    
+
     // Literals
     Integer(i64),
     Float(f64),
     String(String),
     Bool(bool),
-    
+
     // Identifiers
     Identifier(String),
-    
+
     // Operators
     Plus,
     Minus,
@@ -34,7 +36,7 @@ pub enum TokenKind {
     LessEqual,
     Greater,
     GreaterEqual,
-    
+
     // Delimiters
     LeftParen,
     RightParen,
@@ -45,17 +47,17 @@ pub enum TokenKind {
     Comma,
     Semicolon,
     Colon,
-    Arrow, // ->
+    Arrow,    // ->
     FatArrow, // =>
-    
+
     // Type system
     TypeArrow, // ::
     Lambda,    // λ (lambda)
-    
+
     // Whitespace and comments
     Whitespace,
     Comment(String),
-    
+
     // End of file
     Eof,
 }
@@ -109,10 +111,10 @@ impl Lexer {
         lexer.vertical_processor = VerticalProcessor::new(&lexer.input);
         lexer
     }
-    
+
     pub fn tokenize(&mut self) -> Result<Vec<Token>> {
         let mut tokens = Vec::new();
-        
+
         while !self.is_at_end() {
             if let Some(token) = self.next_token()? {
                 if !matches!(token.kind, TokenKind::Whitespace) {
@@ -120,13 +122,13 @@ impl Lexer {
                 }
             }
         }
-        
+
         tokens.push(Token::new(
             TokenKind::Eof,
             self.current_span(),
             String::new(),
         ));
-        
+
         Ok(tokens)
     }
 
@@ -141,11 +143,14 @@ impl Lexer {
         for (cluster_text, pos_2d) in clusters {
             if cluster_text.trim().is_empty() {
                 // Handle whitespace
-                let span = Span2D::new(pos_2d, Position2D::new(
-                    pos_2d.column + cluster_text.len(),
-                    pos_2d.row,
-                    pos_2d.byte_offset + cluster_text.len(),
-                ));
+                let span = Span2D::new(
+                    pos_2d,
+                    Position2D::new(
+                        pos_2d.column + cluster_text.len(),
+                        pos_2d.row,
+                        pos_2d.byte_offset + cluster_text.len(),
+                    ),
+                );
 
                 let token_kind = if cluster_text.contains('\n') {
                     SpatialTokenKind::LineBreak
@@ -164,7 +169,7 @@ impl Lexer {
 
             // Classify the token using Japanese analyzer
             let token_kind = self.classify_spatial_token(&cluster_text);
-            
+
             let end_pos = Position2D::new(
                 pos_2d.column + cluster_text.chars().count(),
                 pos_2d.row,
@@ -192,11 +197,11 @@ impl Lexer {
 
         // Classify based on character content
         let primary_script = self.japanese_analyzer.primary_script(text);
-        
+
         match primary_script {
-            crate::japanese::JapaneseScript::Kanji |
-            crate::japanese::JapaneseScript::Hiragana |
-            crate::japanese::JapaneseScript::Katakana => SpatialTokenKind::Japanese,
+            crate::japanese::JapaneseScript::Kanji
+            | crate::japanese::JapaneseScript::Hiragana
+            | crate::japanese::JapaneseScript::Katakana => SpatialTokenKind::Japanese,
             crate::japanese::JapaneseScript::Ascii => {
                 // Further classify ASCII content
                 if text.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
@@ -204,14 +209,15 @@ impl Lexer {
                 } else {
                     SpatialTokenKind::Punctuation
                 }
-            },
+            }
             _ => SpatialTokenKind::Other,
         }
     }
 
     /// Convert spatial tokens back to regular tokens (for compatibility)
     pub fn spatial_to_regular(spatial_tokens: Vec<SpatialToken>) -> Vec<Token> {
-        spatial_tokens.into_iter()
+        spatial_tokens
+            .into_iter()
             .map(|spatial_token| {
                 let kind = Self::spatial_to_token_kind(&spatial_token);
                 let span = Self::spatial_to_regular_span(&spatial_token.span);
@@ -233,7 +239,7 @@ impl Lexer {
                     "繰り返し" => TokenKind::Kurikaeshi,
                     _ => TokenKind::Identifier(spatial_token.content.clone()),
                 }
-            },
+            }
             SpatialTokenKind::Ascii => {
                 // Try to parse as number first
                 if let Ok(int_val) = spatial_token.content.parse::<i64>() {
@@ -243,7 +249,7 @@ impl Lexer {
                 } else {
                     TokenKind::Identifier(spatial_token.content.clone())
                 }
-            },
+            }
             SpatialTokenKind::Punctuation => {
                 // Map punctuation to specific token types
                 match spatial_token.content.as_str() {
@@ -273,7 +279,7 @@ impl Lexer {
                     "λ" => TokenKind::Lambda,
                     _ => TokenKind::Identifier(spatial_token.content.clone()),
                 }
-            },
+            }
             SpatialTokenKind::Whitespace => TokenKind::Whitespace,
             SpatialTokenKind::LineBreak => TokenKind::Whitespace,
             SpatialTokenKind::Other => TokenKind::Identifier(spatial_token.content.clone()),
@@ -285,28 +291,28 @@ impl Lexer {
         Span::new(
             span_2d.start.byte_offset,
             span_2d.end.byte_offset,
-            span_2d.start.row + 1, // Convert 0-based to 1-based line numbers
+            span_2d.start.row + 1,    // Convert 0-based to 1-based line numbers
             span_2d.start.column + 1, // Convert 0-based to 1-based column numbers
         )
     }
-    
+
     fn normalize_input(&mut self) {
         use unicode_normalization::UnicodeNormalization;
         self.input = self.input.nfc().collect();
     }
-    
+
     fn next_token(&mut self) -> Result<Option<Token>> {
         // Placeholder implementation - extend with actual tokenization logic
         self.skip_whitespace();
-        
+
         if self.is_at_end() {
             return Ok(None);
         }
-        
+
         let start_pos = self.position;
         let start_line = self.line;
         let start_column = self.column;
-        
+
         match self.current_char {
             Some('(') => {
                 self.advance();
@@ -315,7 +321,7 @@ impl Lexer {
                     Span::new(start_pos, self.position, start_line, start_column),
                     "(".to_string(),
                 )))
-            },
+            }
             Some(')') => {
                 self.advance();
                 Ok(Some(Token::new(
@@ -323,7 +329,7 @@ impl Lexer {
                     Span::new(start_pos, self.position, start_line, start_column),
                     ")".to_string(),
                 )))
-            },
+            }
             // Add more tokenization rules here
             _ => {
                 self.advance();
@@ -335,7 +341,7 @@ impl Lexer {
             }
         }
     }
-    
+
     fn skip_whitespace(&mut self) {
         while let Some(ch) = self.current_char {
             if ch.is_whitespace() {
@@ -345,32 +351,33 @@ impl Lexer {
             }
         }
     }
-    
+
     fn advance(&mut self) {
         if let Some(ch) = self.current_char {
             self.position += ch.len_utf8();
-            
+
             if ch == '\n' {
                 self.line += 1;
                 self.column = 1;
             } else {
                 self.column += 1;
             }
-            
+
             self.current_char = self.input.chars().nth(self.char_position());
         }
     }
-    
+
     fn char_position(&self) -> usize {
-        self.input.grapheme_indices(true)
+        self.input
+            .grapheme_indices(true)
             .take_while(|(byte_idx, _)| *byte_idx < self.position)
             .count()
     }
-    
+
     fn is_at_end(&self) -> bool {
         self.current_char.is_none()
     }
-    
+
     fn current_span(&self) -> Span {
         Span::new(self.position, self.position, self.line, self.column)
     }

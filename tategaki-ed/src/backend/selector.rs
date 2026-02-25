@@ -3,8 +3,8 @@
 //! Automatically detects the best available backend based on the environment
 //! (TTY detection, available features, user preferences).
 
-use crate::{Result, TategakiError};
 use super::BackendType;
+use crate::{Result, TategakiError};
 
 /// Backend selection preferences
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,7 +70,7 @@ impl BackendSelector {
 
             #[cfg(not(feature = "notcurses"))]
             return Err(TategakiError::Rendering(
-                "Terminal mode requested but notcurses feature is not enabled".to_string()
+                "Terminal mode requested but notcurses feature is not enabled".to_string(),
             ));
         }
 
@@ -106,7 +106,8 @@ impl BackendSelector {
 
         #[cfg(not(any(feature = "gpui", feature = "notcurses", feature = "ratatui")))]
         Err(TategakiError::Rendering(
-            "No rendering backend is available (enable gpui, notcurses, or ratatui feature)".to_string()
+            "No rendering backend is available (enable gpui, notcurses, or ratatui feature)"
+                .to_string(),
         ))
     }
 
@@ -179,9 +180,8 @@ mod tests {
     #[test]
     #[cfg(feature = "notcurses")]
     fn test_specific_backend_notcurses() {
-        let selector = BackendSelector::with_preference(
-            BackendPreference::Specific(BackendType::Notcurses)
-        );
+        let selector =
+            BackendSelector::with_preference(BackendPreference::Specific(BackendType::Notcurses));
         let result = selector.select();
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), BackendType::Notcurses);

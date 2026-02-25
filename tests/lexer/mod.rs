@@ -5,7 +5,7 @@ fn test_basic_tokens() {
     let source = "( ) { }".to_string();
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize().unwrap();
-    
+
     assert_eq!(tokens.len(), 5); // 4 tokens + EOF
     assert!(matches!(tokens[0].kind, TokenKind::LeftParen));
     assert!(matches!(tokens[1].kind, TokenKind::RightParen));
@@ -18,7 +18,7 @@ fn test_basic_tokens() {
 fn test_japanese_keywords() {
     let source = "関数 型".to_string();
     let mut lexer = Lexer::new(source);
-    
+
     // This will likely fail until we implement actual Japanese tokenization
     // but it's here to test the structure
     match lexer.tokenize() {
@@ -36,7 +36,7 @@ fn test_japanese_keywords() {
 fn test_integer_literals() {
     let source = "123 456".to_string();
     let mut lexer = Lexer::new(source);
-    
+
     match lexer.tokenize() {
         Ok(tokens) => {
             // Should have at least EOF token
@@ -54,7 +54,7 @@ fn test_empty_input() {
     let source = "".to_string();
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize().unwrap();
-    
+
     assert_eq!(tokens.len(), 1);
     assert!(matches!(tokens[0].kind, TokenKind::Eof));
 }
@@ -62,9 +62,9 @@ fn test_empty_input() {
 #[test]
 fn test_unicode_normalization() {
     // Test that Unicode normalization works for Japanese text
-    let source = "あいうえお".to_string();  // Hiragana
+    let source = "あいうえお".to_string(); // Hiragana
     let mut lexer = Lexer::new(source);
-    
+
     // Should not panic due to Unicode issues
     match lexer.tokenize() {
         Ok(_) | Err(_) => {

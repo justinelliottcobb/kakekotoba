@@ -2,11 +2,11 @@
 //!
 //! Provides a floating overlay bar for commands that doesn't interfere with vertical text flow.
 
-use crate::{Result, TategakiError};
-use crate::{FloatingBarConfig, FloatingPosition, FloatingBarStyle, BorderStyle};
-use crate::{HorizontalAnchor, VerticalAnchor};
 use crate::backend::{Color, Rect};
 use crate::spatial::SpatialPosition;
+use crate::{BorderStyle, FloatingBarConfig, FloatingBarStyle, FloatingPosition};
+use crate::{HorizontalAnchor, VerticalAnchor};
+use crate::{Result, TategakiError};
 
 /// Floating command bar state
 pub struct FloatingCommandBar {
@@ -140,7 +140,8 @@ impl FloatingCommandBar {
 
     /// Add command to history
     pub fn add_to_history(&mut self, command: String) {
-        if !command.is_empty() && (self.history.is_empty() || self.history.last() != Some(&command)) {
+        if !command.is_empty() && (self.history.is_empty() || self.history.last() != Some(&command))
+        {
             self.history.push(command);
             // Keep history limited to 100 entries
             if self.history.len() > 100 {
@@ -164,8 +165,7 @@ impl FloatingCommandBar {
 
             // Common vim commands
             let common_commands = vec![
-                "w", "write", "q", "quit", "wq", "x",
-                "e", "edit", "sp", "split", "vs", "vsplit",
+                "w", "write", "q", "quit", "wq", "x", "e", "edit", "sp", "split", "vs", "vsplit",
                 "tabnew", "tabclose", "set", "help",
             ];
 
@@ -178,7 +178,12 @@ impl FloatingCommandBar {
     }
 
     /// Calculate the position and size of the floating bar
-    pub fn calculate_bounds(&self, viewport_width: u32, viewport_height: u32, cursor_pos: &SpatialPosition) -> (usize, usize, usize, usize) {
+    pub fn calculate_bounds(
+        &self,
+        viewport_width: u32,
+        viewport_height: u32,
+        cursor_pos: &SpatialPosition,
+    ) -> (usize, usize, usize, usize) {
         let content_width = self.calculate_content_width();
         let width = content_width.max(self.config.style.min_width);
         let width = if let Some(max) = self.config.style.max_width {
@@ -217,18 +222,29 @@ impl FloatingCommandBar {
                 let y = (cursor_pos.row as isize + offset_y).max(0) as usize;
                 (x, y)
             }
-            FloatingPosition::Anchored { horizontal, vertical, offset_x, offset_y } => {
+            FloatingPosition::Anchored {
+                horizontal,
+                vertical,
+                offset_x,
+                offset_y,
+            } => {
                 let x = match horizontal {
                     HorizontalAnchor::Left => *offset_x,
-                    HorizontalAnchor::Center => (viewport_width as isize - width as isize) / 2 + offset_x,
+                    HorizontalAnchor::Center => {
+                        (viewport_width as isize - width as isize) / 2 + offset_x
+                    }
                     HorizontalAnchor::Right => viewport_width as isize - width as isize + offset_x,
-                }.max(0) as usize;
+                }
+                .max(0) as usize;
 
                 let y = match vertical {
                     VerticalAnchor::Top => *offset_y,
-                    VerticalAnchor::Middle => (viewport_height as isize - height as isize) / 2 + offset_y,
+                    VerticalAnchor::Middle => {
+                        (viewport_height as isize - height as isize) / 2 + offset_y
+                    }
                     VerticalAnchor::Bottom => viewport_height as isize - height as isize + offset_y,
-                }.max(0) as usize;
+                }
+                .max(0) as usize;
 
                 (x, y)
             }
@@ -240,13 +256,14 @@ impl FloatingCommandBar {
     /// Calculate content width based on current content and styling
     fn calculate_content_width(&self) -> usize {
         let (left_pad, right_pad, _, _) = self.config.style.padding;
-        let border_width = if self.config.style.border == BorderStyle::None { 0 } else { 2 };
+        let border_width = if self.config.style.border == BorderStyle::None {
+            0
+        } else {
+            2
+        };
 
         let content_width = self.content.len();
-        let suggestion_width = self.suggestions.iter()
-            .map(|s| s.len())
-            .max()
-            .unwrap_or(0);
+        let suggestion_width = self.suggestions.iter().map(|s| s.len()).max().unwrap_or(0);
 
         content_width.max(suggestion_width) + left_pad + right_pad + border_width
     }
@@ -254,7 +271,11 @@ impl FloatingCommandBar {
     /// Calculate content height based on visible elements
     fn calculate_content_height(&self) -> usize {
         let (_, _, top_pad, bottom_pad) = self.config.style.padding;
-        let border_height = if self.config.style.border == BorderStyle::None { 0 } else { 2 };
+        let border_height = if self.config.style.border == BorderStyle::None {
+            0
+        } else {
+            2
+        };
 
         let mut height = 1; // Input line
 
@@ -295,7 +316,11 @@ impl FloatingCommandBar {
         if self.config.show_suggestions && !self.suggestions.is_empty() {
             lines.push("─────────────".to_string());
             for (i, suggestion) in self.suggestions.iter().enumerate().take(5) {
-                let prefix = if Some(i) == self.selected_suggestion { ">" } else { " " };
+                let prefix = if Some(i) == self.selected_suggestion {
+                    ">"
+                } else {
+                    " "
+                };
                 lines.push(format!("{} :{}", prefix, suggestion));
             }
         }
@@ -326,7 +351,10 @@ impl FloatingCommandBar {
             FloatingPosition::Absolute { x: _, y } => {
                 *y = y.saturating_sub(step.max(0) as usize);
             }
-            FloatingPosition::NearCursor { offset_x: _, offset_y } => {
+            FloatingPosition::NearCursor {
+                offset_x: _,
+                offset_y,
+            } => {
                 *offset_y -= step;
             }
             FloatingPosition::Anchored { offset_y, .. } => {
@@ -351,7 +379,10 @@ impl FloatingCommandBar {
             FloatingPosition::Absolute { x: _, y } => {
                 *y = y.saturating_add(step.max(0) as usize);
             }
-            FloatingPosition::NearCursor { offset_x: _, offset_y } => {
+            FloatingPosition::NearCursor {
+                offset_x: _,
+                offset_y,
+            } => {
                 *offset_y += step;
             }
             FloatingPosition::Anchored { offset_y, .. } => {
@@ -370,7 +401,10 @@ impl FloatingCommandBar {
             FloatingPosition::Absolute { x, y: _ } => {
                 *x = x.saturating_sub(step.max(0) as usize);
             }
-            FloatingPosition::NearCursor { offset_x, offset_y: _ } => {
+            FloatingPosition::NearCursor {
+                offset_x,
+                offset_y: _,
+            } => {
                 *offset_x -= step;
             }
             FloatingPosition::Anchored { offset_x, .. } => {
@@ -388,8 +422,12 @@ impl FloatingCommandBar {
             _ => {
                 // For TopCenter/BottomCenter, convert to Anchored
                 let (vert_anchor, offset_y) = match &self.config.position {
-                    FloatingPosition::TopCenter { offset_y } => (VerticalAnchor::Top, *offset_y as isize),
-                    FloatingPosition::BottomCenter { offset_y } => (VerticalAnchor::Bottom, *offset_y as isize),
+                    FloatingPosition::TopCenter { offset_y } => {
+                        (VerticalAnchor::Top, *offset_y as isize)
+                    }
+                    FloatingPosition::BottomCenter { offset_y } => {
+                        (VerticalAnchor::Bottom, *offset_y as isize)
+                    }
                     _ => (VerticalAnchor::Middle, 0),
                 };
                 self.config.position = FloatingPosition::Anchored {
@@ -408,7 +446,10 @@ impl FloatingCommandBar {
             FloatingPosition::Absolute { x, y: _ } => {
                 *x = x.saturating_add(step.max(0) as usize);
             }
-            FloatingPosition::NearCursor { offset_x, offset_y: _ } => {
+            FloatingPosition::NearCursor {
+                offset_x,
+                offset_y: _,
+            } => {
                 *offset_x += step;
             }
             FloatingPosition::Anchored { offset_x, .. } => {
@@ -426,8 +467,12 @@ impl FloatingCommandBar {
             _ => {
                 // For TopCenter/BottomCenter, convert to Anchored
                 let (vert_anchor, offset_y) = match &self.config.position {
-                    FloatingPosition::TopCenter { offset_y } => (VerticalAnchor::Top, *offset_y as isize),
-                    FloatingPosition::BottomCenter { offset_y } => (VerticalAnchor::Bottom, *offset_y as isize),
+                    FloatingPosition::TopCenter { offset_y } => {
+                        (VerticalAnchor::Top, *offset_y as isize)
+                    }
+                    FloatingPosition::BottomCenter { offset_y } => {
+                        (VerticalAnchor::Bottom, *offset_y as isize)
+                    }
                     _ => (VerticalAnchor::Middle, 0),
                 };
                 self.config.position = FloatingPosition::Anchored {
@@ -445,7 +490,10 @@ impl FloatingCommandBar {
         self.config.position = match &self.config.position {
             FloatingPosition::Center => FloatingPosition::TopCenter { offset_y: 2 },
             FloatingPosition::TopCenter { .. } => FloatingPosition::BottomCenter { offset_y: 2 },
-            FloatingPosition::BottomCenter { .. } => FloatingPosition::NearCursor { offset_x: 3, offset_y: -2 },
+            FloatingPosition::BottomCenter { .. } => FloatingPosition::NearCursor {
+                offset_x: 3,
+                offset_y: -2,
+            },
             FloatingPosition::NearCursor { .. } => FloatingPosition::Anchored {
                 horizontal: HorizontalAnchor::Right,
                 vertical: VerticalAnchor::Top,
@@ -473,9 +521,19 @@ impl FloatingCommandBar {
             FloatingPosition::TopCenter { offset_y } => format!("Top (offset: {})", offset_y),
             FloatingPosition::BottomCenter { offset_y } => format!("Bottom (offset: {})", offset_y),
             FloatingPosition::Absolute { x, y } => format!("Absolute ({}, {})", x, y),
-            FloatingPosition::NearCursor { offset_x, offset_y } => format!("Near Cursor ({:+}, {:+})", offset_x, offset_y),
-            FloatingPosition::Anchored { horizontal, vertical, offset_x, offset_y } => {
-                format!("{:?}-{:?} ({:+}, {:+})", horizontal, vertical, offset_x, offset_y)
+            FloatingPosition::NearCursor { offset_x, offset_y } => {
+                format!("Near Cursor ({:+}, {:+})", offset_x, offset_y)
+            }
+            FloatingPosition::Anchored {
+                horizontal,
+                vertical,
+                offset_x,
+                offset_y,
+            } => {
+                format!(
+                    "{:?}-{:?} ({:+}, {:+})",
+                    horizontal, vertical, offset_x, offset_y
+                )
             }
         }
     }
@@ -634,19 +692,31 @@ mod tests {
 
         // Cycle to TopCenter
         bar.cycle_position();
-        assert!(matches!(bar.config.position, FloatingPosition::TopCenter { .. }));
+        assert!(matches!(
+            bar.config.position,
+            FloatingPosition::TopCenter { .. }
+        ));
 
         // Cycle to BottomCenter
         bar.cycle_position();
-        assert!(matches!(bar.config.position, FloatingPosition::BottomCenter { .. }));
+        assert!(matches!(
+            bar.config.position,
+            FloatingPosition::BottomCenter { .. }
+        ));
 
         // Cycle to NearCursor
         bar.cycle_position();
-        assert!(matches!(bar.config.position, FloatingPosition::NearCursor { .. }));
+        assert!(matches!(
+            bar.config.position,
+            FloatingPosition::NearCursor { .. }
+        ));
 
         // Cycle to Anchored
         bar.cycle_position();
-        assert!(matches!(bar.config.position, FloatingPosition::Anchored { .. }));
+        assert!(matches!(
+            bar.config.position,
+            FloatingPosition::Anchored { .. }
+        ));
 
         // Cycle back to Center
         bar.cycle_position();
@@ -679,7 +749,10 @@ mod tests {
         let bar = FloatingCommandBar::new(config.clone());
         assert_eq!(bar.position_description(), "Top (offset: 5)");
 
-        config.position = FloatingPosition::NearCursor { offset_x: 3, offset_y: -2 };
+        config.position = FloatingPosition::NearCursor {
+            offset_x: 3,
+            offset_y: -2,
+        };
         let bar = FloatingCommandBar::new(config);
         assert_eq!(bar.position_description(), "Near Cursor (+3, -2)");
     }
@@ -725,7 +798,11 @@ mod tests {
         config.vertical_orientation = true;
         let bar_vert = FloatingCommandBar::new(config);
 
-        let cursor = SpatialPosition { row: 10, column: 10, byte_offset: 0 };
+        let cursor = SpatialPosition {
+            row: 10,
+            column: 10,
+            byte_offset: 0,
+        };
 
         // Get bounds for both orientations
         let (x_h, y_h, w_h, h_h) = bar_horiz.calculate_bounds(80, 24, &cursor);
@@ -734,6 +811,9 @@ mod tests {
         // Vertical should swap width and height
         // Note: This is a basic check - the exact values will vary based on content
         // The key is that vertical orientation affects the dimensions
-        assert!(w_v != w_h || h_v != h_h, "Vertical orientation should affect dimensions");
+        assert!(
+            w_v != w_h || h_v != h_h,
+            "Vertical orientation should affect dimensions"
+        );
     }
 }

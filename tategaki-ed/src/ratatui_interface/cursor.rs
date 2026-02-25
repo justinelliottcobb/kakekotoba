@@ -259,7 +259,7 @@ impl TerminalCursor {
     pub fn move_by(&mut self, row_delta: i32, col_delta: i32) {
         let new_row = (self.position.row as i32 + row_delta).max(0) as usize;
         let new_col = (self.position.column as i32 + col_delta).max(0) as usize;
-        
+
         self.position = SpatialPosition {
             row: new_row,
             column: new_col,
@@ -292,7 +292,7 @@ impl TerminalCursor {
     pub fn bounds(&self, char_width: u16, char_height: u16) -> (u16, u16, u16, u16) {
         let x = self.position.column as u16;
         let y = self.position.row as u16;
-        
+
         match self.style {
             TerminalCursorStyle::Block => (x, y, char_width, char_height),
             TerminalCursorStyle::Underline => (x, y + char_height - 1, char_width, 1),
@@ -366,14 +366,14 @@ mod tests {
     fn test_cursor_movement() {
         let mut cursor = TerminalCursor::new();
         let direction = TextDirection::HorizontalLeftToRight;
-        
+
         cursor.move_right(&direction);
         assert_eq!(cursor.position().column, 1);
-        
+
         cursor.move_down(&direction);
         assert_eq!(cursor.position().row, 1);
         assert_eq!(cursor.position().column, 1); // Should maintain preferred column
-        
+
         cursor.move_left(&direction);
         assert_eq!(cursor.position().column, 0);
     }
@@ -382,11 +382,11 @@ mod tests {
     fn test_vertical_text_movement() {
         let mut cursor = TerminalCursor::new();
         let direction = TextDirection::VerticalTopToBottom;
-        
+
         cursor.move_down(&direction);
         assert_eq!(cursor.position().row, 1);
         assert_eq!(cursor.position().column, 0);
-        
+
         cursor.move_left(&direction); // Should move to next column
         assert_eq!(cursor.position().column, 1);
         assert_eq!(cursor.position().row, 0); // Reset to top of column
@@ -404,10 +404,10 @@ mod tests {
     fn test_cursor_visibility() {
         let mut cursor = TerminalCursor::new();
         assert!(cursor.is_visible());
-        
+
         cursor.set_visible(false);
         assert!(!cursor.is_visible());
-        
+
         cursor.set_visible(true);
         cursor.set_blink_state(false);
         assert!(!cursor.is_visible()); // Invisible due to blink state
@@ -418,7 +418,7 @@ mod tests {
         let cursor = TerminalCursor::new();
         let (x, y, w, h) = cursor.bounds(1, 1);
         assert_eq!((x, y, w, h), (0, 0, 1, 1));
-        
+
         let mut cursor = TerminalCursor::new();
         cursor.set_position(SpatialPosition { row: 5, column: 10 });
         let (x, y, w, h) = cursor.bounds(2, 2);

@@ -1,7 +1,7 @@
 //! Japanese keyword detection and classification
 
-use std::collections::HashMap;
 use crate::error::Result;
+use std::collections::HashMap;
 
 /// Detects and classifies Japanese keywords in programming contexts
 pub struct KeywordDetector {
@@ -13,7 +13,7 @@ impl KeywordDetector {
     /// Create a new keyword detector with standard Kakekotoba keywords
     pub fn new() -> Self {
         let mut keyword_map = HashMap::new();
-        
+
         // Control flow keywords
         keyword_map.insert("関数".to_string(), KeywordType::Function);
         keyword_map.insert("型".to_string(), KeywordType::Type);
@@ -79,7 +79,7 @@ impl KeywordDetector {
 
         // Simple word boundary detection for Japanese
         let words = self.extract_words(text);
-        
+
         for (word, start_offset) in words {
             if let Some(&keyword_type) = self.keyword_map.get(&word) {
                 keywords.push(DetectedKeyword {
@@ -97,7 +97,9 @@ impl KeywordDetector {
     /// Check if text contains any keywords
     pub fn has_any_keyword(&self, text: &str) -> bool {
         let words = self.extract_words(text);
-        words.iter().any(|(word, _)| self.keyword_map.contains_key(word))
+        words
+            .iter()
+            .any(|(word, _)| self.keyword_map.contains_key(word))
     }
 
     /// Get the keyword type for a specific word, if it is a keyword
@@ -114,7 +116,7 @@ impl KeywordDetector {
 
         for c in text.chars() {
             let char_bytes = c.len_utf8();
-            
+
             if self.is_word_separator(c) {
                 // End current word if it exists
                 if !current_word.is_empty() {
@@ -129,7 +131,7 @@ impl KeywordDetector {
                 }
                 current_word.push(c);
             }
-            
+
             byte_offset += char_bytes;
         }
 
@@ -143,12 +145,13 @@ impl KeywordDetector {
 
     /// Check if a character separates words in Japanese text
     fn is_word_separator(&self, c: char) -> bool {
-        matches!(c, 
+        matches!(
+            c,
             ' ' | '\t' | '\n' | '\r' |  // Whitespace
             '(' | ')' | '[' | ']' | '{' | '}' |  // Brackets
             '、' | '。' | '，' | '．' |  // Japanese punctuation
             '!' | '?' | ':' | ';' |  // ASCII punctuation
-            '！' | '？' | '：' | '；'   // Full-width punctuation
+            '！' | '？' | '：' | '；' // Full-width punctuation
         )
     }
 
@@ -195,26 +198,41 @@ impl DetectedKeyword {
 
     /// Check if this keyword is a control flow keyword
     pub fn is_control_flow(&self) -> bool {
-        matches!(self.keyword_type,
-            KeywordType::If | KeywordType::Then | KeywordType::Else |
-            KeywordType::Loop | KeywordType::Return | KeywordType::Break |
-            KeywordType::Continue | KeywordType::Match | KeywordType::Case
+        matches!(
+            self.keyword_type,
+            KeywordType::If
+                | KeywordType::Then
+                | KeywordType::Else
+                | KeywordType::Loop
+                | KeywordType::Return
+                | KeywordType::Break
+                | KeywordType::Continue
+                | KeywordType::Match
+                | KeywordType::Case
         )
     }
 
     /// Check if this keyword is a type-related keyword
     pub fn is_type_related(&self) -> bool {
-        matches!(self.keyword_type,
-            KeywordType::Type | KeywordType::Trait | KeywordType::Implementation |
-            KeywordType::Derive | KeywordType::Constraint
+        matches!(
+            self.keyword_type,
+            KeywordType::Type
+                | KeywordType::Trait
+                | KeywordType::Implementation
+                | KeywordType::Derive
+                | KeywordType::Constraint
         )
     }
 
     /// Check if this keyword is a functional programming keyword
     pub fn is_functional(&self) -> bool {
-        matches!(self.keyword_type,
-            KeywordType::Map | KeywordType::Fold | KeywordType::Filter |
-            KeywordType::Lambda | KeywordType::Composition
+        matches!(
+            self.keyword_type,
+            KeywordType::Map
+                | KeywordType::Fold
+                | KeywordType::Filter
+                | KeywordType::Lambda
+                | KeywordType::Composition
         )
     }
 }
@@ -285,7 +303,7 @@ impl KeywordType {
             KeywordType::Function => "Function definition",
             KeywordType::If => "Conditional expression",
             KeywordType::Then => "Then branch",
-            KeywordType::Else => "Else branch", 
+            KeywordType::Else => "Else branch",
             KeywordType::Loop => "Loop construct",
             KeywordType::Return => "Return statement",
             KeywordType::Break => "Break from loop",
@@ -340,8 +358,10 @@ mod tests {
     #[test]
     fn test_keyword_detection() {
         let detector = KeywordDetector::new();
-        let keywords = detector.detect_keywords("関数 main() { 返す 42; }").unwrap();
-        
+        let keywords = detector
+            .detect_keywords("関数 main() { 返す 42; }")
+            .unwrap();
+
         assert_eq!(keywords.len(), 2);
         assert_eq!(keywords[0].text, "関数");
         assert_eq!(keywords[0].keyword_type, KeywordType::Function);
@@ -367,7 +387,7 @@ mod tests {
     fn test_word_extraction() {
         let detector = KeywordDetector::new();
         let words = detector.extract_words("関数 main(甲、乙)");
-        
+
         assert!(words.len() >= 3);
         assert!(words.iter().any(|(word, _)| word == "関数"));
         assert!(words.iter().any(|(word, _)| word == "甲"));
@@ -393,10 +413,10 @@ mod tests {
     fn test_custom_keywords() {
         let mut detector = KeywordDetector::new();
         detector.add_keyword("テスト".to_string(), KeywordType::Function);
-        
+
         assert_eq!(detector.keyword_type("テスト"), Some(KeywordType::Function));
         assert!(detector.has_any_keyword("これは テスト です"));
-        
+
         detector.remove_keyword("テスト");
         assert_eq!(detector.keyword_type("テスト"), None);
     }

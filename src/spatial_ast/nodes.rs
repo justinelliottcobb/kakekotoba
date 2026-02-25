@@ -1,8 +1,8 @@
 //! Spatial AST node definitions with 2D positioning
 
-use crate::vertical::{Position2D, Span2D};
 use crate::ast;
-use serde::{Serialize, Deserialize};
+use crate::vertical::{Position2D, Span2D};
+use serde::{Deserialize, Serialize};
 
 /// Expression with spatial information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -435,7 +435,10 @@ pub struct IdentifierProperties {
 impl SpatialExpression {
     /// Create a new spatial expression
     pub fn new(expr: ast::Expression, spatial_props: ExpressionSpatialProps) -> Self {
-        Self { expr, spatial_props }
+        Self {
+            expr,
+            spatial_props,
+        }
     }
 
     /// Check if this expression is multiline
@@ -452,7 +455,10 @@ impl SpatialExpression {
 impl SpatialStatement {
     /// Create a new spatial statement
     pub fn new(stmt: ast::Statement, spatial_props: StatementSpatialProps) -> Self {
-        Self { stmt, spatial_props }
+        Self {
+            stmt,
+            spatial_props,
+        }
     }
 
     /// Check if this statement requires a block structure
@@ -469,7 +475,10 @@ impl SpatialStatement {
 impl SpatialDeclaration {
     /// Create a new spatial declaration
     pub fn new(decl: ast::Declaration, spatial_props: DeclarationSpatialProps) -> Self {
-        Self { decl, spatial_props }
+        Self {
+            decl,
+            spatial_props,
+        }
     }
 
     /// Check if this declaration starts a new section
@@ -486,7 +495,10 @@ impl SpatialDeclaration {
 impl SpatialType {
     /// Create a new spatial type
     pub fn new(type_info: ast::Type, spatial_props: TypeSpatialProps) -> Self {
-        Self { type_info, spatial_props }
+        Self {
+            type_info,
+            spatial_props,
+        }
     }
 
     /// Get the complexity level of this type
@@ -496,8 +508,10 @@ impl SpatialType {
 
     /// Check if this type has complex layout requirements
     pub fn is_complex_layout(&self) -> bool {
-        matches!(self.spatial_props.complexity, 
-            TypeComplexity::Complex | TypeComplexity::HigherKinded)
+        matches!(
+            self.spatial_props.complexity,
+            TypeComplexity::Complex | TypeComplexity::HigherKinded
+        )
     }
 }
 
@@ -513,7 +527,7 @@ mod tests {
         props.precedence_level = 5;
 
         let spatial_expr = SpatialExpression::new(expr, props);
-        
+
         assert!(spatial_expr.is_multiline());
         assert_eq!(spatial_expr.precedence_level(), 5);
     }
@@ -526,7 +540,7 @@ mod tests {
         props.flow_control.nesting_level = 2;
 
         let spatial_stmt = SpatialStatement::new(stmt, props);
-        
+
         assert!(spatial_stmt.requires_block());
         assert_eq!(spatial_stmt.nesting_level(), 2);
     }
@@ -539,15 +553,18 @@ mod tests {
             return_type: None,
             body: ast::Expression::Literal(ast::Literal::Integer(42)),
         };
-        
+
         let mut props = DeclarationSpatialProps::default();
         props.starts_section = true;
         props.visibility_scope = VisibilityScope::Public;
 
         let spatial_decl = SpatialDeclaration::new(decl, props);
-        
+
         assert!(spatial_decl.starts_section());
-        assert!(matches!(spatial_decl.visibility_scope(), VisibilityScope::Public));
+        assert!(matches!(
+            spatial_decl.visibility_scope(),
+            VisibilityScope::Public
+        ));
     }
 
     #[test]
@@ -557,7 +574,7 @@ mod tests {
         props.complexity = TypeComplexity::Complex;
 
         let spatial_type = SpatialType::new(type_info, props);
-        
+
         assert!(spatial_type.is_complex_layout());
         assert!(matches!(spatial_type.complexity(), TypeComplexity::Complex));
     }

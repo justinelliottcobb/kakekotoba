@@ -1,7 +1,7 @@
 //! 2D positioning system for vertical programming languages
 
-use std::cmp::Ordering;
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 
 /// Represents a 2D position in vertically-oriented source code
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -141,11 +141,11 @@ impl PositionMapper {
     /// Create a new position mapper for the given text
     pub fn new(text: &str, writing_direction: super::WritingDirection) -> Self {
         let mut line_breaks = vec![0]; // Start of file is position 0
-        
+
         for (byte_pos, _) in text.match_indices('\n') {
             line_breaks.push(byte_pos + 1); // Position after the newline
         }
-        
+
         Self {
             line_breaks,
             writing_direction,
@@ -155,13 +155,14 @@ impl PositionMapper {
     /// Convert byte offset to 2D position
     pub fn byte_to_2d(&self, byte_offset: usize) -> Position2D {
         // Find which line this byte offset is on
-        let row = self.line_breaks
+        let row = self
+            .line_breaks
             .binary_search(&byte_offset)
             .unwrap_or_else(|i| i.saturating_sub(1));
-        
+
         let line_start = self.line_breaks.get(row).copied().unwrap_or(0);
         let column = byte_offset.saturating_sub(line_start);
-        
+
         Position2D::new(column, row, byte_offset)
     }
 
@@ -189,7 +190,7 @@ mod tests {
         let pos1 = Position2D::new(0, 0, 0);
         let pos2 = Position2D::new(1, 0, 5);
         let pos3 = Position2D::new(0, 1, 10);
-        
+
         // In vertical reading order: higher column comes first
         assert!(pos2 < pos1);
         assert!(pos1 < pos3);
@@ -200,11 +201,11 @@ mod tests {
         let start = Position2D::new(0, 0, 0);
         let end = Position2D::new(5, 0, 5);
         let span = Span2D::new(start, end);
-        
+
         assert_eq!(span.byte_length(), 5);
         assert_eq!(span.width(), 5);
         assert_eq!(span.height(), 1);
-        
+
         let pos = Position2D::new(2, 0, 2);
         assert!(span.contains(pos));
     }
@@ -213,11 +214,11 @@ mod tests {
     fn test_position_mapper() {
         let text = "line1\nline2\nline3";
         let mapper = PositionMapper::new(text, super::WritingDirection::VerticalTbRl);
-        
+
         let pos = mapper.byte_to_2d(7); // 'i' in "line2"
         assert_eq!(pos.row, 1);
         assert_eq!(pos.column, 1);
-        
+
         let byte_offset = mapper.to_byte_offset(Position2D::new(1, 1, 0));
         assert_eq!(byte_offset, 7);
     }
