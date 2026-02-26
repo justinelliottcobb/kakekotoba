@@ -16,11 +16,13 @@ Kakekotoba is a sibling language to Shaper (ShaperOS's native language). Both ar
 |---|---|---|
 | **Foundation** | Abstract Type Theory + Group Homomorphisms | Geometric Algebra (Clifford algebras) |
 | **Core abstraction** | Structure-preserving maps between algebraic objects | Multivectors and the geometric product |
-| **Type system** | HM inference + higher-kinded types + homomorphism types | Grade-based blade types + Schubert capabilities |
+| **Accessibility** | Human-first; geometry behind intuitive surface | AI-first; direct geometric access |
+| **Type system** | HM inference + affine types + homomorphism types | Grade-based blade types + Schubert capabilities |
 | **Meta-programming** | Homomorphisms as program transformations | Versors (rotors/reflectors) as program transformations |
 | **Identity** | Japanese keywords, vertical text, poetic structure | Geometric notation, multi-script, spatial layout |
+| **Math library** | Amari (dependency) | Amari (dependency) |
 
-These are **convergent** approaches: group homomorphisms and geometric transformations are deeply related mathematically. The long-term goal is interoperability — kakekotoba programs targeting Shaper-asm, Shaper programs expressing kakekotoba's type structure, and shared tooling between the two ecosystems.
+These are **convergent** approaches: group homomorphisms and geometric transformations are deeply related mathematically. The long-term goal is interoperability — kakekotoba programs targeting Shaper-asm, Shaper programs expressing kakekotoba's type structure, and shared tooling between the two ecosystems. Both languages share Amari as their geometric algebra foundation.
 
 ### Self-Hosting Goal
 
@@ -33,21 +35,25 @@ The north star is **self-hosting**: writing kakekotoba code in tategaki-ed (the 
 ### What Exists
 
 **Compiler (kakekotoba crate)**
-- Lexer: tokenizes Japanese/Unicode keywords, tracks spatial positions (partial)
-- Parser: recursive descent, basic declarations and expressions (partial)
-- AST: complete definition including sum/product types and homomorphism declarations
-- Type system: HM with polymorphism, higher-kinded types, group homomorphism types (complete definition)
-- Type inference: skeleton only — constraint generation scaffolded, solving not implemented
-- Code generation: skeleton only — LLVM IR framework exists, no actual emission
-- CLI: full pipeline orchestration with `--lex-only`, `--parse-only`, etc.
-- Error handling: miette-based diagnostics with source spans
+- **Lexer**: Full S-expression tokenizer with Japanese bracket support (`「」` `【】` treated as `()`), Japanese/ASCII identifiers, number/string/boolean literals, operators, `--` comments. Japanese keyword detection (41 keywords across 8 categories). Spatial tokenization with 2D positions also works.
+- **S-expression parser**: Parses the full S-expression grammar — function definitions (`定義`), pattern matching (`場合`), conditionals (`もし`/`if`), lambdas (`匿名`), let bindings (`束縛`), binary/unary operators, function application. Type annotations (`数 -> 数`).
+- **Tree-walking interpreter**: Full evaluation of the S-expression AST — closures, recursion, pattern matching (literal, variable, wildcard patterns), let bindings, lambdas, arithmetic/comparison/boolean operators, string operations, `表示` (print).
+- **REPL**: Interactive `掛詞 >` prompt with persistent environment, `:quit`/`:help` commands, all three bracket styles.
+- **AST**: Complete definition including sum/product types, homomorphism declarations, pattern matching, lambda, let, if, match, binary/unary operators.
+- **Type system**: HM with polymorphism, higher-kinded types, group homomorphism types, affine ownership types (complete definition in `types.rs`).
+- **Type inference**: HM unification partially working — constraint generation, occurs check, basic solving. Let-polymorphism and pattern matching inference stubbed.
+- **Code generation**: Stubbed (LLVM/inkwell removed; bytecode VM approach planned per Phase 3).
+- **CLI**: `kakekotoba run <file>`, `kakekotoba repl`, `kakekotoba compile` with `--lex-only`, `--parse-only`, `--type-check-only` flags.
+- **Error handling**: miette-based diagnostics with source spans.
+- **Pipeline**: Full orchestration — `run_source()`, `run_file()`, `lex_only()`, `parse_sexp()`, `type_check_only()`, `compile_file()`.
 
 **Vertical/Spatial Infrastructure**
-- Bidirectional text processing (LTR/RTL/vertical)
+- Bidirectional text processing (LTR/RTL/vertical) via unicode-bidi
 - 2D code layout analysis (indentation, blocks, flow)
-- Japanese keyword detection and character classification (~410 keywords)
+- Japanese keyword detection (41 keywords across 8 categories) and character classification (kanji, hiragana, katakana, ascii)
 - Unicode normalization for Japanese text
 - Spatial AST with 2D positional metadata
+- Note: vertical/horizontal is a **presentational** choice, not semantic (see `docs/design-philosophy.md`)
 
 **Editor (tategaki-ed)**
 - Notcurses terminal backend with vertical text rendering
@@ -57,9 +63,18 @@ The north star is **self-hosting**: writing kakekotoba code in tategaki-ed (the 
 - Floating command bar with configurable positioning
 - Blocked on system notcurses version (3.0.7 vs required 3.0.11+)
 
-### Branch Structure
-- `main` — stable
-- `notcurses-backend` — active development (+50 files, +10K lines over main)
+**Test Coverage**
+- Workspace compiles with 0 errors
+- 42 integration tests (end-to-end S-expression pipeline)
+- 18 S-expression parser unit tests
+- 16 interpreter unit tests
+- 13 lexer unit tests
+- 69/80 legacy lib tests pass (11 pre-existing failures in scaffolded code)
+
+### Branch Structure (Gitflow)
+- `main` — stable releases
+- `develop` — integration branch
+- Feature/chore/fix branches → PR to `develop` → release PR → `main`
 
 ---
 
@@ -102,11 +117,10 @@ The editor is the eventual home for writing kakekotoba code. It needs to work we
 
 **Goal**: Nail down the kakekotoba language design before investing in backends.
 
-The language has a strong type system definition but the surface syntax and semantics need to be fully specified. This phase is about writing a language reference and completing the parser.
-
 ### 2.1 Language Reference
 - [ ] Write `docs/language-reference.md` covering:
   - Lexical structure (keywords in Japanese/ASCII, operators, literals)
+  - S-expression syntax (primary form) and future surface syntax
   - Declarations (functions, types, imports)
   - Expressions (application, lambda, let, if, match, binary/unary ops)
   - Type system (primitives, constructors, polymorphism, higher-kinded types)
@@ -117,12 +131,12 @@ The language has a strong type system definition but the surface syntax and sema
 - [ ] Specify how group homomorphism properties are checked vs declared
 
 ### 2.2 Complete the Parser
-- [ ] Full expression grammar (currently partial)
-  - Lambda expressions
+- [ ] Full expression grammar (currently partial in legacy parser)
+  - Lambda expressions with explicit parameter lists
   - Match expressions with guards
   - Binary/unary operators with precedence climbing
   - Block expressions
-- [ ] Homomorphism declaration syntax
+- [ ] Homomorphism declaration syntax in S-expression form
 - [ ] Import declarations
 - [ ] Sum/product type definitions
 - [ ] Error recovery for better diagnostics
@@ -132,13 +146,130 @@ The language has a strong type system definition but the surface syntax and sema
 - [ ] Define when homomorphism properties are verified (compile-time vs runtime)
 - [ ] Specify the kind system for higher-kinded types
 - [ ] Define type class / trait mechanism (if any — or are homomorphisms sufficient?)
+- [ ] Design const-generic metric encoding for Amari `(P,Q,R)` signatures
 
 ### 2.4 Example Programs
-- [ ] Write 5-10 example programs that exercise the language's features
-- [ ] "Hello world" equivalent
+- [x] "Hello world" equivalent: `(表示 "掛詞の世界へようこそ")`
+- [x] Factorial with pattern matching and recursion
+- [x] Fibonacci (double recursion)
+- [x] Higher-order functions (lambda, function composition)
 - [ ] A program demonstrating group homomorphisms
-- [ ] A program using pattern matching and algebraic types
-- [ ] A program showing higher-kinded type usage
+- [ ] A program using algebraic data types
+- [ ] A program showing Amari type constructors
+
+---
+
+## Phase 2.5: Minimal End-to-End Pipeline ✅ COMPLETE
+
+**Goal**: Get the surface reading working — a minimal kakekotoba program runs and produces a result.
+
+**Status**: Complete (PR #4 to develop). The "surface reading works" milestone is achieved.
+
+### What Was Built
+
+```lisp
+;; This runs and produces 42:
+(定義 二倍 (数 -> 数) (* 2 x))
+(二倍 21)
+
+;; Japanese brackets work interchangeably:
+「定義 三倍 「数 -> 数」 「* 3 x」」
+【三倍 14】
+
+;; Pattern matching, recursion, closures all work:
+(定義 階乗 (数 -> 数)
+  (場合 n
+    (0 -> 1)
+    (n -> (* n (階乗 (- n 1))))))
+(階乗 10)  ;; → 3628800
+```
+
+### Completed Items
+- [x] S-expression lexer with Japanese bracket support (`「」` `【】`)
+- [x] S-expression parser → AST (定義, 場合, もし/if, 匿名, 束縛)
+- [x] Tree-walking interpreter (closures, recursion, pattern matching)
+- [x] Interactive REPL (`kakekotoba repl`)
+- [x] CLI with `run`, `repl`, `compile` subcommands
+- [x] Pipeline integration (`run_source`, `run_file`)
+- [x] 42 end-to-end integration tests
+- [x] Factorial, Fibonacci, lambdas, let bindings, string operations
+
+---
+
+## Phase 2.7: Amari Integration — Type System Bridge
+
+**Goal**: Connect kakekotoba's type system to Amari's geometric algebra types, enabling the deep reading layer.
+
+This phase bridges the surface reading (Phase 2.5) with the geometric reading by wiring Amari types into kakekotoba's `Type::Constructor` and `Type::Homomorphism`. The programmer still writes S-expressions, but the type system now understands geometric objects.
+
+### 2.7.1 Amari Core Type Constructors
+- [ ] Add `amari-core` as a dependency
+- [ ] Map `Multivector<P,Q,R>` → `Type::Constructor("多元体", [P, Q, R])`
+- [ ] Map `Rotor<P,Q,R>` → `Type::Constructor("回転子", [P, Q, R])`
+- [ ] Map `Vector<P,Q,R>` → `Type::Constructor("ベクトル", [P, Q, R])`
+- [ ] Map `Bivector<P,Q,R>` → `Type::Constructor("二重ベクトル", [P, Q, R])`
+- [ ] Encode `(P,Q,R)` metric signatures in the type system (const-generic or phantom)
+- [ ] `Rotor::apply(v)` as the canonical homomorphism example
+
+### 2.7.2 Amari Operations as Homomorphisms
+- [ ] Wire `Type::Homomorphism` to Amari structure-preserving maps
+- [ ] `grade_projection(k)` as grade-preserving endomorphism
+- [ ] `Rotor::from_bivector` as exponential map (Bivector → Rotor)
+- [ ] `geometric_product` as group operation
+- [ ] `reverse()` as anti-automorphism
+- [ ] Define which operations the type checker should verify
+
+### 2.7.3 Dual and Tropical Readings
+- [ ] `amari-dual` DualNumber lift: f(x) → (f(x), f'(x)) as a homomorphism
+- [ ] `amari-tropical` TropicalNumber interpretation: (+ ×) → (max +) as a homomorphism
+- [ ] Type-level encoding of "this expression has a dual/tropical reading"
+
+### 2.7.4 Interpreter Support for Amari Values
+- [ ] Extend `Value` enum with geometric algebra variants
+- [ ] Runtime evaluation of geometric operations (product, grade projection, etc.)
+- [ ] Display formatting for multivectors, rotors
+
+### 2.7.5 Integration Tests
+- [ ] Define a rotation and apply it to a vector
+- [ ] Verify homomorphism properties at runtime
+- [ ] Dual number differentiation of a kakekotoba function
+- [ ] Tropical optimization of a constraint problem
+
+---
+
+## Phase 2.8: amari-automata Integration — Computational Algebra
+
+**Goal**: Leverage amari-automata's five subsystems for kakekotoba's advanced features.
+
+### 2.8.1 CayleyGraph for Reading Navigation
+- [ ] Use `CayleyGraph<P,Q,R>` to model the space of program readings
+- [ ] Nodes = algebraic interpretations (surface, deep, geometric)
+- [ ] Edges = homomorphisms between readings
+- [ ] `CayleyNavigator` for IDE-style navigation between readings
+- [ ] Path weight = computational cost of each reading transformation
+
+### 2.8.2 GeometricCA for Code Evolution
+- [ ] Model code blocks as GeometricCA cells (multivector state)
+- [ ] `RuleType` classification for refactoring: GradePreserving, Reversible, Conservative
+- [ ] Evolution rules for automated code transformation
+- [ ] CA-guided refactoring suggestions in tategaki-ed
+
+### 2.8.3 InverseDesigner for Type Inference
+- [ ] Explore dual-number gradient descent for type inference beyond unification
+- [ ] "Given target type, find program structure" as inverse design
+- [ ] Complement HM with optimization-based inference for ambiguous cases
+
+### 2.8.4 SelfAssembly for Code Layout
+- [ ] Use `SelfAssembler<P,Q,R>` for automatic code arrangement
+- [ ] Geometric affinities between related functions
+- [ ] `UIAssembler` + `LayoutEngine` for tategaki-ed integration
+- [ ] Vertical layout emerges from algebra, not manual arrangement
+
+### 2.8.5 TropicalSolver for Constraint Optimization
+- [ ] Use `TropicalSolver<T,DIM>` for type constraint solving
+- [ ] When multiple valid type assignments exist, find the optimal one
+- [ ] Tropical linearization of discrete constraint problems
+- [ ] Integration with affine type cost modeling
 
 ---
 
@@ -146,11 +277,12 @@ The language has a strong type system definition but the surface syntax and sema
 
 **Goal**: Get kakekotoba programs running via a bytecode interpreter.
 
-Rather than a throwaway tree-walking interpreter, kakekotoba targets a bytecode IR with an interpreter. This is inspired by (but not identical to) Shaper-asm's architecture, providing a foundation that can later be compiled to native code, extended toward sasm compatibility, or target WASM.
+Rather than keeping the tree-walking interpreter from Phase 2.5, kakekotoba targets a bytecode IR. This is inspired by (but not identical to) ShaperOS's shaper-asm architecture, providing a foundation that can later be compiled to native code, extended toward sasm compatibility, or target WASM.
 
-### Design Principles (sasm-informed)
-- **Register-based VM** — avoids stack shuffling, maps well to native compilation later
-- **Algebraic data in registers** — registers hold typed algebraic values, not just scalars
+### Design Principles (shaper-asm-informed)
+- **Register-based VM** — avoids stack shuffling, maps well to native compilation later. ShaperOS's shaper-asm uses 256 general registers + specialized registers (grade, scalar, predicate) — kakekotoba's VM may use general + type + ownership registers.
+- **Algebraic data in registers** — registers hold typed algebraic values, not just scalars. Algebraic operations powered by Amari (amari-core for Clifford algebra, amari-tropical for resource analysis).
+- **Grade-segregated memory** — inspired by ShaperOS's memory model: memory organized by algebraic grade, bump allocation per grade, per-grade collection. In kakekotoba, "grade" maps to ownership tier (stack/heap/cache coordinate systems).
 - **Conventional control flow** — branches, calls, returns (no need to reinvent this)
 - **Interpretable and compilable** — same bytecode works for both modes
 - **Self-contained** — no dependency on Shaper infrastructure (namespace, sprites, capabilities)
@@ -199,7 +331,7 @@ This decision can be deferred until Phase 2 (language design) is complete enough
 - [ ] Core algebraic structures (integers as a group under addition, etc.)
 
 ### 3.5 REPL
-- [ ] Interactive read-eval-print loop using the interpreter
+- [ ] Interactive read-eval-print loop using the bytecode interpreter
 - [ ] Expression evaluation with type display
 - [ ] `:type` command for type inspection
 
@@ -236,6 +368,8 @@ This decision can be deferred until Phase 2 (language design) is complete enough
 - [ ] Go-to-definition for kakekotoba source
 - [ ] Error display from the compiler in the editor
 - [ ] Compile-and-run from within the editor
+- [ ] CayleyGraph-based reading navigation (surface ↔ deep ↔ geometric)
+- [ ] SelfAssembler-driven code layout suggestions
 
 ### 5.2 Language Maturity
 - [ ] Module system implementation
@@ -267,6 +401,7 @@ This decision can be deferred until Phase 2 (language design) is complete enough
 - [ ] Formal relationship between group homomorphisms and geometric versors
 - [ ] Shared algebraic optimization passes
 - [ ] Unified program-space representation
+- [ ] Amari as the shared mathematical foundation — both languages depend on it for their algebraic operations, making it the natural interop layer
 
 ---
 
@@ -276,8 +411,12 @@ This decision can be deferred until Phase 2 (language design) is complete enough
 
 2. **Japanese nativity** — Japanese keywords are not translations of English. The language is designed for expression in Japanese, with ASCII as the fallback.
 
-3. **Vertical text as first-class** — Tategaki (vertical writing) is not a rendering trick. The spatial AST and layout system treat 2D text arrangement as fundamental.
+3. **Vertical text as presentation** — Tategaki (vertical writing) and yokogaki (horizontal writing) are display choices, not semantic differences. The spatial AST and layout system treat 2D text arrangement as a first-class concern for tooling and readability, but the program's meaning is independent of orientation.
 
-4. **Convergent, not identical** — Kakekotoba and Shaper approach the same mathematical territory (algebraic structure, transformation, preservation) from different entry points. They should converge through interoperability, not become the same language.
+4. **Accessible depth** — The geometric machinery (Amari-powered rotors, grade-segregated memory, subspace liveness) is available when needed but hidden behind ownership semantics and Japanese keywords by default. Most programmers stay at the surface. The geometry is there when you need it.
 
-5. **Working software over perfect design** — Each phase should produce something that runs. The interpreter before the optimizing compiler. The editor before the IDE. Working examples before the formal specification.
+5. **Convergent, not identical** — Kakekotoba and Shaper approach the same mathematical territory (algebraic structure, transformation, preservation) from different entry points. They should converge through interoperability, not become the same language.
+
+6. **Working software over perfect design** — Each phase should produce something that runs. The interpreter before the optimizing compiler. The editor before the IDE. Working examples before the formal specification. Surface reading before deep reading.
+
+7. **Amari as shared foundation** — Both kakekotoba and Shaper build on Amari's geometric algebra library. Amari is not just a dependency — it is the mathematical lingua franca that makes convergence possible. Design decisions should preserve compatibility with Amari's type system and algebraic model.
