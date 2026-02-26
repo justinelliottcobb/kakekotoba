@@ -1,5 +1,6 @@
 pub mod ast;
 pub mod codegen;
+#[allow(unused_assignments)]
 pub mod error;
 pub mod inference;
 pub mod interpreter;

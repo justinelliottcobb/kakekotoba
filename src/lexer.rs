@@ -1,10 +1,9 @@
 use crate::error::{Error, Result, Span};
-use crate::japanese::{JapaneseAnalyzer, KeywordDetector, KeywordType};
+use crate::japanese::JapaneseAnalyzer;
 use crate::vertical::{
     Position2D, Span2D, SpatialToken, SpatialTokenKind, VerticalProcessor, WritingDirection,
 };
 use serde::{Deserialize, Serialize};
-use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TokenKind {

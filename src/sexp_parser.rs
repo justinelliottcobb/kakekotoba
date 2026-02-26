@@ -75,7 +75,7 @@ impl SExpParser {
 
         // Try as declaration first
         if let Ok(decl) = self.sexpr_to_declaration(&sexpr) {
-            return Ok(SExprResult::Declaration(decl));
+            return Ok(SExprResult::Declaration(Box::new(decl)));
         }
 
         // Otherwise, parse as expression
@@ -722,7 +722,7 @@ impl SExpParser {
 /// Result of parsing a single S-expression (for REPL)
 #[derive(Debug)]
 pub enum SExprResult {
-    Declaration(Declaration),
+    Declaration(Box<Declaration>),
     Expression(Expression),
 }
 
@@ -746,7 +746,7 @@ mod tests {
         let tokens = lexer.tokenize().unwrap();
         let mut parser = SExpParser::new(tokens, input.to_string());
         match parser.parse_single().unwrap() {
-            SExprResult::Declaration(decl) => decl,
+            SExprResult::Declaration(decl) => *decl,
             SExprResult::Expression(_) => panic!("Expected declaration, got expression"),
         }
     }

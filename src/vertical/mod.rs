@@ -34,7 +34,7 @@ pub enum WritingDirection {
 #[derive(Debug)]
 pub struct VerticalProcessor {
     /// Bidirectional text levels
-    bidi_levels: Vec<Level>,
+    _bidi_levels: Vec<Level>,
     /// Current writing direction
     direction: WritingDirection,
     /// Original text content
@@ -49,7 +49,7 @@ impl VerticalProcessor {
         let bidi_levels = bidi_info.levels.clone();
 
         Self {
-            bidi_levels,
+            _bidi_levels: bidi_levels,
             direction,
             content: content.to_string(),
         }

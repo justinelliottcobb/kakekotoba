@@ -4,6 +4,7 @@ use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[allow(unused_assignments)]
 #[derive(Error, Debug, Diagnostic)]
 pub enum Error {
     #[error("Lexical error: {message}")]

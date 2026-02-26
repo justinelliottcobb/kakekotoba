@@ -84,13 +84,15 @@ impl CodeBlock {
 
 /// Detects code blocks from spatial tokens and indentation information
 pub struct BlockDetector {
-    direction: WritingDirection,
+    _direction: WritingDirection,
 }
 
 impl BlockDetector {
     /// Create a new block detector
     pub fn new(direction: WritingDirection) -> Self {
-        Self { direction }
+        Self {
+            _direction: direction,
+        }
     }
 
     /// Detect all code blocks in the given tokens
@@ -100,10 +102,10 @@ impl BlockDetector {
         indentation_map: &HashMap<Position2D, usize>,
     ) -> Result<Vec<CodeBlock>> {
         let mut blocks = Vec::new();
-        let mut block_stack: Vec<usize> = Vec::new(); // Stack for tracking nested blocks
+        let _block_stack: Vec<usize> = Vec::new(); // Stack for tracking nested blocks
         let mut current_block: Option<BlockBuilder> = None;
 
-        for (i, token) in tokens.iter().enumerate() {
+        for token in tokens.iter() {
             // Skip whitespace tokens
             if token.is_whitespace() {
                 continue;
@@ -263,8 +265,10 @@ pub struct BlockStatistics {
 impl BlockStatistics {
     /// Calculate statistics from a set of blocks
     pub fn from_blocks(blocks: &[CodeBlock]) -> Self {
-        let mut stats = Self::default();
-        stats.total_blocks = blocks.len();
+        let mut stats = Self {
+            total_blocks: blocks.len(),
+            ..Default::default()
+        };
 
         for block in blocks {
             match block.block_type {

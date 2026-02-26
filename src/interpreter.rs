@@ -641,11 +641,9 @@ impl Interpreter {
             .collect();
 
         // If we have a type signature, verify count matches
-        if let Some(ref ty) = f.return_type {
-            if let crate::types::Type::Function { ref params, .. } = ty {
-                if user_vars.len() == params.len() {
-                    return user_vars;
-                }
+        if let Some(crate::types::Type::Function { ref params, .. }) = f.return_type {
+            if user_vars.len() == params.len() {
+                return user_vars;
             }
         }
 

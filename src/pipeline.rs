@@ -10,23 +10,12 @@ use tracing::{info, instrument, warn};
 
 pub struct Compiler;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct CompilerOptions {
     pub optimize: bool,
     pub output_ir: bool,
     pub type_check_only: bool,
     pub output_path: Option<String>,
-}
-
-impl Default for CompilerOptions {
-    fn default() -> Self {
-        Self {
-            optimize: false,
-            output_ir: false,
-            type_check_only: false,
-            output_path: None,
-        }
-    }
 }
 
 impl Compiler {

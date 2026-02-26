@@ -83,7 +83,7 @@ impl CharacterClassifier {
             // Japanese punctuation
             '、' | '。' | '「' | '」' | '『' | '』' | '（' | '）' | '［' | '］' | '｛' | '｝'
             | '〈' | '〉' | '《' | '》' | '〔' | '〕' | '〖' | '〗' | '〘' | '〙' | '〚' | '〛'
-            | '・' | '：' | '；' | '？' | '！' => CharacterClass::JapanesePunctuation,
+            | '：' | '；' | '？' | '！' => CharacterClass::JapanesePunctuation,
 
             // ASCII alphanumeric
             'A'..='Z' | 'a'..='z' | '0'..='9' => CharacterClass::Ascii,

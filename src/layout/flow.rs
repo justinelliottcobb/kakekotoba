@@ -172,11 +172,7 @@ impl TextFlow {
     fn should_break_segment(from: Position2D, to: Position2D) -> bool {
         // Break if there's a significant gap
         let row_gap = to.row.saturating_sub(from.row);
-        let col_gap = if to.column > from.column {
-            to.column - from.column
-        } else {
-            from.column - to.column
-        };
+        let col_gap = to.column.abs_diff(from.column);
 
         row_gap > 1 || col_gap > 10 // Heuristic thresholds
     }

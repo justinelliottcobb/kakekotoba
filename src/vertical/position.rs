@@ -134,7 +134,7 @@ pub struct PositionMapper {
     /// Line breaks in the source text (byte positions)
     line_breaks: Vec<usize>,
     /// Writing direction for position calculations
-    writing_direction: super::WritingDirection,
+    _writing_direction: super::WritingDirection,
 }
 
 impl PositionMapper {
@@ -148,7 +148,7 @@ impl PositionMapper {
 
         Self {
             line_breaks,
-            writing_direction,
+            _writing_direction: writing_direction,
         }
     }
 

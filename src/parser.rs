@@ -3,14 +3,7 @@ use crate::error::{Error, Result, Span};
 use crate::layout::CodeLayout;
 use crate::lexer::{Token, TokenKind};
 use crate::spatial_ast::{SourceInfo, SpatialASTBuilder, SpatialProgram};
-use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
-use nom::{
-    branch::alt,
-    combinator::{map, opt},
-    multi::{many0, separated_list0},
-    sequence::{delimited, pair, preceded, terminated, tuple},
-    IResult,
-};
+use crate::vertical::{Position2D, SpatialToken, WritingDirection};
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -372,7 +365,7 @@ impl Parser {
         }
     }
 
-    fn consume(&mut self, kind: &TokenKind, message: &str) -> Result<&Token> {
+    fn consume(&mut self, kind: &TokenKind, _message: &str) -> Result<&Token> {
         if self.check(kind) {
             Ok(self.advance().unwrap())
         } else {
@@ -409,6 +402,7 @@ impl Parser {
     }
 
     /// Get the spatial token corresponding to the current regular token
+    #[allow(dead_code)]
     fn current_spatial_token(&self) -> Option<&SpatialToken> {
         if let Some(spatial_tokens) = &self.spatial_tokens {
             // Simple approach: match by content and approximate position
@@ -423,6 +417,7 @@ impl Parser {
     }
 
     /// Get 2D position for current parsing location
+    #[allow(dead_code)]
     fn current_position_2d(&self) -> Position2D {
         if let Some(spatial_token) = self.current_spatial_token() {
             spatial_token.span.start
@@ -438,6 +433,7 @@ impl Parser {
     }
 
     /// Check if we're parsing in vertical mode
+    #[allow(dead_code)]
     fn is_vertical_mode(&self) -> bool {
         matches!(
             self.writing_direction,
@@ -446,8 +442,9 @@ impl Parser {
     }
 
     /// Get layout-aware error context for spatial parsing
+    #[allow(dead_code)]
     fn spatial_error_context(&self, expected: Vec<String>, found: String) -> Error {
-        let position = self.current_position_2d();
+        let _position = self.current_position_2d();
 
         Error::Parser {
             src: self
