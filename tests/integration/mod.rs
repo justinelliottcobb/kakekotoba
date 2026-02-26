@@ -1,3 +1,5 @@
+mod sexp_pipeline;
+
 use kakekotoba::pipeline::{create_default_options, Compiler, CompilerOptions};
 use std::io::Write;
 use tempfile::NamedTempFile;

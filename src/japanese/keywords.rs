@@ -76,7 +76,7 @@ impl KeywordDetector {
     /// Detect all keywords in the given text
     pub fn detect_keywords(&self, text: &str) -> Result<Vec<DetectedKeyword>> {
         let mut keywords = Vec::new();
-        let mut byte_offset = 0;
+        let _byte_offset = 0;
 
         // Simple word boundary detection for Japanese
         let words = self.extract_words(text);

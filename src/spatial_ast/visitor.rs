@@ -196,6 +196,12 @@ pub struct MetricsCalculator {
     node_count: usize,
 }
 
+impl Default for MetricsCalculator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MetricsCalculator {
     /// Create a new metrics calculator
     pub fn new() -> Self {
@@ -255,6 +261,12 @@ impl SpatialVisitor for MetricsCalculator {
 pub struct SpatialValidator {
     errors: Vec<SpatialValidationError>,
     node_stack: Vec<NodeId>,
+}
+
+impl Default for SpatialValidator {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SpatialValidator {
@@ -340,6 +352,12 @@ where
 /// Visitor to update reading order
 pub struct ReadingOrderUpdater {
     current_order: usize,
+}
+
+impl Default for ReadingOrderUpdater {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ReadingOrderUpdater {

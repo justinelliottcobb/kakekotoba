@@ -1,6 +1,6 @@
 //! AST transformation utilities for spatial ASTs
 
-use super::visitor::{SpatialVisitor, SpatialVisitorMut};
+use super::visitor::SpatialVisitorMut;
 use super::{SourceInfo, SpatialASTBuilder, SpatialContent, SpatialNode, SpatialProgram};
 use crate::ast;
 use crate::error::Result;
@@ -10,8 +10,8 @@ use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
 /// Transforms regular ASTs to spatial ASTs
 pub struct SpatialTransformer {
     builder: SpatialASTBuilder,
-    current_position: Position2D,
-    current_indentation: usize,
+    _current_position: Position2D,
+    _current_indentation: usize,
 }
 
 impl SpatialTransformer {
@@ -19,8 +19,8 @@ impl SpatialTransformer {
     pub fn new() -> Self {
         Self {
             builder: SpatialASTBuilder::new(),
-            current_position: Position2D::origin(),
-            current_indentation: 0,
+            _current_position: Position2D::origin(),
+            _current_indentation: 0,
         }
     }
 
@@ -36,7 +36,7 @@ impl SpatialTransformer {
         let layout = CodeLayout::analyze(tokens)?;
 
         // Replace builder with updated version
-        let builder = std::mem::replace(&mut self.builder, SpatialASTBuilder::new());
+        let builder = std::mem::take(&mut self.builder);
         self.builder = builder.with_layout(layout);
 
         // Create source info

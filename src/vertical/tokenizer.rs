@@ -1,6 +1,6 @@
 //! Direction-aware tokenization for vertical text
 
-use super::{Position2D, Span2D, WritingDirection};
+use super::{Span2D, WritingDirection};
 use crate::error::Result;
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -164,7 +164,7 @@ impl VerticalTokenizer {
 
 /// Iterator implementation for streaming tokenization
 pub struct SpatialTokenIterator {
-    tokenizer: VerticalTokenizer,
+    _tokenizer: VerticalTokenizer,
     tokens: Vec<SpatialToken>,
     current_index: usize,
 }
@@ -176,7 +176,7 @@ impl SpatialTokenIterator {
         let tokens = tokenizer.tokenize()?;
 
         Ok(Self {
-            tokenizer,
+            _tokenizer: tokenizer,
             tokens,
             current_index: 0,
         })
@@ -199,6 +199,7 @@ impl Iterator for SpatialTokenIterator {
 
 #[cfg(test)]
 mod tests {
+    use super::super::Position2D;
     use super::*;
 
     #[test]

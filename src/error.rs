@@ -4,6 +4,7 @@ use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[allow(unused_assignments)]
 #[derive(Error, Debug, Diagnostic)]
 pub enum Error {
     #[error("Lexical error: {message}")]
@@ -44,6 +45,16 @@ pub enum Error {
         #[source_code]
         src: String,
         #[label("cannot infer type")]
+        span: SourceSpan,
+        message: String,
+    },
+
+    #[error("Runtime error: {message}")]
+    #[diagnostic(code(kakekotoba::runtime))]
+    Runtime {
+        #[source_code]
+        src: String,
+        #[label("here")]
         span: SourceSpan,
         message: String,
     },

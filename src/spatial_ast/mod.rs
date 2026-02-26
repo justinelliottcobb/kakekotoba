@@ -3,10 +3,8 @@
 //! This module extends the standard AST with spatial positioning information,
 //! enabling vertical programming language features and preserving layout semantics.
 
-use crate::ast::{Declaration, Expression, Statement};
 use crate::error::Result;
 use crate::layout::CodeLayout;
-use crate::types::Type;
 use crate::vertical::{Position2D, Span2D};
 use serde::{Deserialize, Serialize};
 

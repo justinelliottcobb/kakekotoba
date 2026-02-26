@@ -6,19 +6,21 @@ use std::collections::HashMap;
 
 /// Analyzes indentation patterns in vertically-written code
 pub struct IndentationAnalyzer {
-    direction: WritingDirection,
+    _direction: WritingDirection,
 }
 
 impl IndentationAnalyzer {
     /// Create a new indentation analyzer
     pub fn new(direction: WritingDirection) -> Self {
-        Self { direction }
+        Self {
+            _direction: direction,
+        }
     }
 
     /// Analyze indentation levels from spatial tokens
     pub fn analyze_tokens(&self, tokens: &[SpatialToken]) -> Result<HashMap<Position2D, usize>> {
         let mut indentation_map = HashMap::new();
-        let mut current_line_start = Position2D::origin();
+        let mut _current_line_start = Position2D::origin();
         let mut current_indent = 0;
         let mut in_indentation = true;
 
@@ -26,7 +28,7 @@ impl IndentationAnalyzer {
             match token.kind {
                 SpatialTokenKind::LineBreak => {
                     // Reset for new line
-                    current_line_start = Position2D::new(
+                    _current_line_start = Position2D::new(
                         token.span.end.column,
                         token.span.end.row,
                         token.span.end.byte_offset,
@@ -186,11 +188,7 @@ impl IndentationChange {
 
     /// Get the magnitude of the change
     pub fn magnitude(&self) -> usize {
-        if self.to_level > self.from_level {
-            self.to_level - self.from_level
-        } else {
-            self.from_level - self.to_level
-        }
+        self.to_level.abs_diff(self.from_level)
     }
 }
 

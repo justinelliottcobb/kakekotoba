@@ -5,7 +5,7 @@
 //! block detection, and layout-aware parsing support.
 
 use crate::error::Result;
-use crate::vertical::{Position2D, Span2D, SpatialToken, WritingDirection};
+use crate::vertical::{Position2D, SpatialToken, WritingDirection};
 use std::collections::HashMap;
 
 pub mod blocks;

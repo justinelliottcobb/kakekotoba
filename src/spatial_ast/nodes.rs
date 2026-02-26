@@ -2,7 +2,7 @@
 
 use crate::ast;
 use crate::types::Type as KakeType;
-use crate::vertical::{Position2D, Span2D};
+use crate::vertical::Span2D;
 use serde::{Deserialize, Serialize};
 
 /// Expression with spatial information
@@ -28,7 +28,7 @@ pub struct ExpressionSpatialProps {
 }
 
 /// Operator alignment styles for vertical text
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum OperatorAlignment {
     /// Align with the first operand
     Leading,
@@ -37,19 +37,15 @@ pub enum OperatorAlignment {
     /// Center between operands
     Center,
     /// Default/automatic alignment
+    #[default]
     Auto,
 }
 
-impl Default for OperatorAlignment {
-    fn default() -> Self {
-        Self::Auto
-    }
-}
-
 /// Parentheses styling for vertical layout
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ParenStyle {
     /// Standard horizontal parentheses ()
+    #[default]
     Horizontal,
     /// Vertical parentheses style
     Vertical,
@@ -59,12 +55,6 @@ pub enum ParenStyle {
     Brackets,
     /// Braces {}
     Braces,
-}
-
-impl Default for ParenStyle {
-    fn default() -> Self {
-        Self::Horizontal
-    }
 }
 
 /// Statement with spatial information
@@ -90,28 +80,24 @@ pub struct StatementSpatialProps {
 }
 
 /// Indentation styles for statements
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum IndentationStyle {
     /// Block indentation (increase level)
     Block,
     /// Continuation indentation (align with previous)
     Continuation,
     /// No indentation change
+    #[default]
     None,
     /// Custom indentation level
     Custom(usize),
 }
 
-impl Default for IndentationStyle {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 /// Statement termination styles
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum StatementTermination {
     /// Semicolon termination
+    #[default]
     Semicolon,
     /// Newline termination
     Newline,
@@ -119,12 +105,6 @@ pub enum StatementTermination {
     Block,
     /// Japanese punctuation (。)
     JapanesePeriod,
-}
-
-impl Default for StatementTermination {
-    fn default() -> Self {
-        Self::Semicolon
-    }
 }
 
 /// Flow control properties for statements
@@ -161,9 +141,10 @@ pub struct DeclarationSpatialProps {
 }
 
 /// Visibility scopes affecting layout
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum VisibilityScope {
     /// Private to current module
+    #[default]
     Private,
     /// Public to parent module
     Public,
@@ -173,16 +154,11 @@ pub enum VisibilityScope {
     Internal,
 }
 
-impl Default for VisibilityScope {
-    fn default() -> Self {
-        Self::Private
-    }
-}
-
 /// Documentation positioning preferences
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum DocumentationPosition {
     /// Above the declaration
+    #[default]
     Above,
     /// To the side (right in horizontal, left in vertical)
     Side,
@@ -190,12 +166,6 @@ pub enum DocumentationPosition {
     Below,
     /// Inline with the declaration
     Inline,
-}
-
-impl Default for DocumentationPosition {
-    fn default() -> Self {
-        Self::Above
-    }
 }
 
 /// Module layout properties
@@ -210,9 +180,10 @@ pub struct ModuleLayoutProps {
 }
 
 /// Import grouping styles
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ImportGrouping {
     /// Group by module
+    #[default]
     ByModule,
     /// Group by functionality
     ByFunction,
@@ -222,27 +193,16 @@ pub enum ImportGrouping {
     Alphabetical,
 }
 
-impl Default for ImportGrouping {
-    fn default() -> Self {
-        Self::ByModule
-    }
-}
-
 /// Export listing styles
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ExportStyle {
     /// List exports explicitly
+    #[default]
     Explicit,
     /// Use wildcard exports
     Wildcard,
     /// Selective re-exports
     Selective,
-}
-
-impl Default for ExportStyle {
-    fn default() -> Self {
-        Self::Explicit
-    }
 }
 
 /// Type with spatial information
@@ -268,9 +228,10 @@ pub struct TypeSpatialProps {
 }
 
 /// Type layout complexity levels
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum TypeComplexity {
     /// Simple types (primitives, single identifiers)
+    #[default]
     Simple,
     /// Compound types (structs, tuples)
     Compound,
@@ -280,16 +241,11 @@ pub enum TypeComplexity {
     HigherKinded,
 }
 
-impl Default for TypeComplexity {
-    fn default() -> Self {
-        Self::Simple
-    }
-}
-
 /// Constructor layout preferences
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum ConstructorLayout {
     /// Horizontal layout (traditional)
+    #[default]
     Horizontal,
     /// Vertical layout (stacked)
     Vertical,
@@ -299,16 +255,11 @@ pub enum ConstructorLayout {
     Flow,
 }
 
-impl Default for ConstructorLayout {
-    fn default() -> Self {
-        Self::Horizontal
-    }
-}
-
 /// Generic parameter positioning
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum GenericPositioning {
     /// Angle brackets <T>
+    #[default]
     AngleBrackets,
     /// Square brackets [T]
     SquareBrackets,
@@ -320,16 +271,11 @@ pub enum GenericPositioning {
     Superscript,
 }
 
-impl Default for GenericPositioning {
-    fn default() -> Self {
-        Self::AngleBrackets
-    }
-}
-
 /// Type annotation styles
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum AnnotationStyle {
     /// Colon separator :
+    #[default]
     Colon,
     /// Arrow separator →
     Arrow,
@@ -337,12 +283,6 @@ pub enum AnnotationStyle {
     JapaneseWa,
     /// No explicit separator
     Implicit,
-}
-
-impl Default for AnnotationStyle {
-    fn default() -> Self {
-        Self::Colon
-    }
 }
 
 /// Spatial literal with positioning information
@@ -368,9 +308,10 @@ pub struct LiteralSpatialProps {
 }
 
 /// Numeric base representations
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum NumericBase {
     /// Decimal (base 10)
+    #[default]
     Decimal,
     /// Binary (base 2)
     Binary,
@@ -382,16 +323,11 @@ pub enum NumericBase {
     Japanese,
 }
 
-impl Default for NumericBase {
-    fn default() -> Self {
-        Self::Decimal
-    }
-}
-
 /// String quotation styles
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum QuoteStyle {
     /// Double quotes "
+    #[default]
     Double,
     /// Single quotes '
     Single,
@@ -401,12 +337,6 @@ pub enum QuoteStyle {
     JapaneseCorner,
     /// Backticks `
     Backtick,
-}
-
-impl Default for QuoteStyle {
-    fn default() -> Self {
-        Self::Double
-    }
 }
 
 /// Spatial identifier with full positioning context

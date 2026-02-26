@@ -4,8 +4,7 @@
 //! including character classification, keyword detection, and linguistic analysis.
 
 use crate::error::Result;
-use unicode_categories::UnicodeCategories;
-use unicode_normalization::{is_nfc, UnicodeNormalization};
+use unicode_normalization::is_nfc;
 
 pub mod characters;
 pub mod keywords;
@@ -128,7 +127,7 @@ impl JapaneseUtils {
     pub fn hiragana_to_katakana(text: &str) -> String {
         text.chars()
             .map(|c| {
-                if c >= 'あ' && c <= 'ん' {
+                if ('あ'..='ん').contains(&c) {
                     // Convert hiragana to katakana
                     char::from_u32(c as u32 + 0x60).unwrap_or(c)
                 } else {
@@ -142,7 +141,7 @@ impl JapaneseUtils {
     pub fn katakana_to_hiragana(text: &str) -> String {
         text.chars()
             .map(|c| {
-                if c >= 'ア' && c <= 'ン' {
+                if ('ア'..='ン').contains(&c) {
                     // Convert katakana to hiragana
                     char::from_u32(c as u32 - 0x60).unwrap_or(c)
                 } else {
@@ -181,16 +180,16 @@ impl JapaneseUtils {
     /// Estimate reading difficulty based on character composition
     pub fn reading_difficulty(text: &str) -> ReadingDifficulty {
         let mut kanji_count = 0;
-        let mut hiragana_count = 0;
-        let mut katakana_count = 0;
+        let mut _hiragana_count = 0;
+        let mut _katakana_count = 0;
         let mut total_chars = 0;
 
         for c in text.chars() {
             if !c.is_whitespace() {
                 total_chars += 1;
                 match c {
-                    'あ'..='ん' => hiragana_count += 1,
-                    'ア'..='ン' => katakana_count += 1,
+                    'あ'..='ん' => _hiragana_count += 1,
+                    'ア'..='ン' => _katakana_count += 1,
                     '\u{4E00}'..='\u{9FAF}' => kanji_count += 1,
                     _ => {}
                 }
